@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Заказы</title>
+</head>
+
+<body>
+<!-- В href ссылка на корзину -->
+<a href="..." style="float:right;">
+    <b>КОРЗИНА &cudarrr;</b>
+</a>
+<!-- В href ссылка на главную страницу -->
+<a href="..." style="float:right;">
+    <b>ГЛАВНАЯ &cudarrr;</b>
+</a>
+<table style="width:70%;margin-left:auto;margin-right:auto;">
+    <!-- Итерируемся по заказам -->
+    <tr th:each="...">
+        <td>
+            <h2>
+            	<!--
+            		В text номер заказа.
+            		В href ссылка на страницу заказа. 
+            	-->
+                <a th:text="..." th:href="..."></a>
+            </h2>
+            <table>
+                <!-- Итерируемся по товарам в заказе -->
+                <tr th:each="...">
+                    <!-- В text название товара, количество штук и стоимость -->
+                    <td th:text="..."></td>
+                </tr>
+            </table>
+            <p>
+                <!-- В text общая сумма заказа -->
+                <b th:text="..."></b>
+            </p>
+        </td>
+    </tr>
+</table>
+</body>
+
+</html>
