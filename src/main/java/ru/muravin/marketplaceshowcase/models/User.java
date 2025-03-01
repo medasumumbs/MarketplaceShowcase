@@ -26,7 +26,7 @@ public class User {
 
     @Column(nullable = false, unique = true)
     private String email;
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true, mappedBy = "user_id")
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true, mappedBy = "user")
     private Cart cart;
 
 }

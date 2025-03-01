@@ -32,7 +32,7 @@
                 <constraints nullable="false"/>
             </column>
             <column name="description" type="varchar(500)"/>
-            <column name="imageBase64" type="blob"/>
+            <column name="image_base64" type="bytea"/>
         </createTable>
         <rollback>
             <dropTable tableName="products"/>

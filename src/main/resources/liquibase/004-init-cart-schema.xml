@@ -53,10 +53,10 @@
     <changeSet id="create_carts_product_table" author="author">
         <preConditions>
             <not>
-                <tableExists tableName="carts_products"/>
+                <tableExists tableName="cart_products"/>
             </not>
         </preConditions>
-        <createTable tableName="carts_products">
+        <createTable tableName="cart_products">
             <column name="cart_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
@@ -65,7 +65,7 @@
             </column>
         </createTable>
         <rollback>
-            <dropTable tableName="carts_products"/>
+            <dropTable tableName="cart_products"/>
         </rollback>
     </changeSet>
 

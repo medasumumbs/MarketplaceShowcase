@@ -1,6 +1,6 @@
 spring:
     datasource:
-        url: jdbc:postgresql://localhost:3306/test
+        url: jdbc:postgresql://localhost:5423/test
         username: postgres
         password: postgres
     sql:
@@ -17,8 +17,9 @@ spring:
             hibernate:
                 format_sql: true
     liquibase:
-        change-log: classpath:/db/changelog/liquibase/db.changelog-master.yaml
-        default-schema: marketplace
+        change-log: classpath:/liquibase/db.changelog-master.xml
+        parameters:
+          app.schema-name: marketplace
 
 logging:
     level:

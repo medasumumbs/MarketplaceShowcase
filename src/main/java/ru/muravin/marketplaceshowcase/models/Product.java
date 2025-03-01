@@ -33,7 +33,7 @@ public class Product {
     @Column(length = 500)
     private String description;
 
-    @Column(name = "imageBase64", columnDefinition = "BLOB")
-    private String imageBase64;
+    @Column(name = "imageBase64", columnDefinition = "BYTEA")
+    private byte[] imageBase64;
 }
 
