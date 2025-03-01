@@ -1,0 +1,30 @@
+spring:
+    datasource:
+        url: jdbc:postgresql://localhost:3306/test
+        username: postgres
+        password: postgres
+    sql:
+        init:
+            mode: always
+    application:
+        name: MarketplaceShowcase
+
+    jpa:
+        show-sql: true
+        hibernate:
+            ddl-auto: validate
+        properties:
+            hibernate:
+                format_sql: true
+    liquibase:
+        change-log: classpath:/db/changelog/liquibase/db.changelog-master.yaml
+        default-schema: marketplace
+
+logging:
+    level:
+        sql: debug
+        org:
+            springframework:
+                jdbc:
+                    support:
+                        JdbcTransactionManager: debug
