@@ -1,8 +1,8 @@
 spring:
     datasource:
-        url: jdbc:postgresql://localhost:5423/test
-        username: postgres
-        password: postgres
+        url: jdbc:postgresql://localhost:5423/mydatabase
+        username: myuser
+        password: secret
     sql:
         init:
             mode: always
@@ -20,6 +20,7 @@ spring:
         change-log: classpath:/liquibase/db.changelog-master.xml
         parameters:
           app.schema-name: marketplace
+        clear-checksums: false
 
 logging:
     level:

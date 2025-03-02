@@ -36,6 +36,12 @@
                 <constraints nullable="false" unique="true"/>
             </column>
         </createTable>
+        <insert tableName="users">
+            <column name="id" value="1"/>
+            <column name="username" value="john_doe"/>
+            <column name="email" value="john.doe@example.com"/>
+            <column name="password" value="123"/>
+        </insert>
         <rollback>
             <dropTable tableName="users"/>
         </rollback>

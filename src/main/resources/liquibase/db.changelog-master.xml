@@ -3,7 +3,7 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
-    <changeSet id="1740850886829-1" author="author">
+    <changeSet id="1740850886829-2" author="author">
         <sql>
             CREATE SCHEMA IF NOT EXISTS ${app.schema-name};
         </sql>
