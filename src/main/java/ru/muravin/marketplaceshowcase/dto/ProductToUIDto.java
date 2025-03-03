@@ -1,10 +1,14 @@
 package ru.muravin.marketplaceshowcase.dto;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 import ru.muravin.marketplaceshowcase.models.Product;
 
 @Data
+@NoArgsConstructor
 public class ProductToUIDto {
         private Long id;
 

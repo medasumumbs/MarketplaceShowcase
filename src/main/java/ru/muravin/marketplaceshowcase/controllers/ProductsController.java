@@ -10,27 +10,25 @@ import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.exceptions.CsvValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
-import ru.muravin.marketplaceshowcase.models.Product;
+import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
+
 import ru.muravin.marketplaceshowcase.services.ProductsService;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
-import java.util.Iterator;
+import java.util.Arrays;
 import java.util.List;
 
 @Controller
@@ -87,23 +85,29 @@ public class ProductsController {
                 new CSVParserBuilder().withSeparator(',').build()
             ).build()) {
 
-            ColumnPositionMappingStrategy<Product> beanStrategy = new ColumnPositionMappingStrategy<Product>();
-            beanStrategy.setType(Product.class);
-            beanStrategy.setColumnMapping(new String[] {"id","name","description","price","imageBase64"});
+            ColumnPositionMappingStrategy<ProductToUIDto> beanStrategy = new ColumnPositionMappingStrategy<ProductToUIDto>();
+            beanStrategy.setType(ProductToUIDto.class);
+            beanStrategy.setColumnMapping(new String[] {"name","description","price","imageBase64"});
 
             String[] header = csvReader.readNext();
-            System.out.println(header[0]);
+            if (!Arrays.equals(header, beanStrategy.getColumnMapping())) {
+                model.addAttribute("message", "Ошибка импорта - некорректный заголовок");
+                return "uploadCSVStatus";
+            }
 
-            CsvToBean<Product> csvToBean = new CsvToBean<Product>();
+            CsvToBean<ProductToUIDto> csvToBean = new CsvToBean<ProductToUIDto>();
             csvToBean.setMappingStrategy(beanStrategy);
             csvToBean.setCsvReader(csvReader);
-            List<Product> products = csvToBean.parse();
+            List<ProductToUIDto> products = csvToBean.parse();
             products.forEach(product -> {
                 System.out.println(product.toString());
+                /// TODO: ЗАМЕНИТЬ ВЫВОД СОХРАНЕНИЕМ
             });
 
             // save users list on model
-            model.addAttribute("message", "");
+            model.addAttribute(
+                    "message", "Импорт завершен успешно, продуктов импортировано: " + products.size()
+            );
         } catch (Exception ex) {
             ex.printStackTrace();
             throw ex;
