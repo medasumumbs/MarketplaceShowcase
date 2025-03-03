@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Импорт CSV-файла товаров</title>
+</head>
+<body>
+<form enctype="multipart/form-data" th:method="POST" th:action="@{/products/uploadCSV}">
+    <div>
+        <label for="csv">Файл: </label>
+        <input id="csv" type="file" name="csv" accept="text/csv" >
+        <br/>
+    </div>
+    <input type="submit" value="Импорт">
+</form>
+</body>
+</html>
