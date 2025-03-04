@@ -66,6 +66,12 @@
             <column name="product_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
+            <column name="product_count" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="product_price" type="bigint">
+                <constraints nullable="false"/>
+            </column>
         </createTable>
         <rollback>
             <dropTable tableName="order_products"/>

@@ -15,6 +15,17 @@
             <dropSequence sequenceName="cart_sequence"/>
         </rollback>
     </changeSet>
+    <changeSet id="create_cart_product_sequence" author="author">
+        <preConditions>
+            <not>
+                <sequenceExists sequenceName="cart_product_sequence"/>
+            </not>
+        </preConditions>
+        <createSequence sequenceName="cart_product_sequence" incrementBy="1"/>
+        <rollback>
+            <dropSequence sequenceName="cart_product_sequence"/>
+        </rollback>
+    </changeSet>
     <changeSet id="create_carts_table" author="author">
         <preConditions>
             <not>
@@ -57,10 +68,19 @@
             </not>
         </preConditions>
         <createTable tableName="cart_products">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true"/>
+            </column>
             <column name="cart_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
             <column name="product_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="product_count" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="product_price" type="bigint">
                 <constraints nullable="false"/>
             </column>
         </createTable>

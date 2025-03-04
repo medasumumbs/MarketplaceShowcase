@@ -43,17 +43,8 @@
                         </select>
                     </p>
                     <p>
-                    	<!-- 
-                    		В if true, если выбрана не первая страница.
-                    		В value номер предыдущей страницы.
-                    	-->
                         <button th:if="${pageNumber!=1}" name="pageNumber" th:value="${pageNumber-1}">&lt;</button>
-                        <!-- В text номер текущей страницы -->
                         <span th:text="${'Страница: ' + pageNumber}"></span>
-                        <!-- 
-                    		В if true, если выбрана не последняя страница.
-                    		В value номер следующей страницы.
-                    	-->
                         <button th:if="${pageNumber!=lastPageNumber}" name="pageNumber" th:value="${pageNumber+1}">&gt;</button>
                     </p>
                 </form>
