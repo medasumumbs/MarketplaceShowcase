@@ -26,4 +26,11 @@ public class ProductsService {
     public Long countAll() {
         return repository.count();
     }
+
+    public List<ProductToUIDto> findByNameLike(String search, PageRequest pageRequest) {
+        return repository.findByNameLike('%' + search + '%', pageRequest);
+    }
+    public Long countByNameLike(String search) {
+        return repository.countByNameLike('%' + search + '%');
+    }
 }

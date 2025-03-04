@@ -57,13 +57,27 @@ public class ProductsController {
             sortingColumn = "price";
         }
         Sort sortingObject = Sort.by(sortingColumn);
-        var products = productsService.findAll(PageRequest.of(pageNumber-1, pageSize, sortingObject));
+        List<ProductToUIDto> products;
+
+        var pageRequest = PageRequest.of(pageNumber-1, pageSize, sortingObject);
+        if ((search != null) && (!search.isEmpty())) {
+            products = productsService.findByNameLike(search, pageRequest);
+        } else {
+            products = productsService.findAll(pageRequest);
+        }
+
         modelAndView.addObject("products", products);
         modelAndView.addObject("search", search);
         modelAndView.addObject("sort", sort);
         modelAndView.addObject("pageSize", pageSize);
         modelAndView.addObject("pageNumber", pageNumber);
-        modelAndView.addObject("lastPageNumber", Math.ceil((double)productsService.countAll()/pageSize));
+        Long countAll;
+        if ((search != null) && (!search.isEmpty())) {
+            countAll = productsService.countByNameLike(search);
+        } else {
+            countAll = productsService.countAll();
+        }
+        modelAndView.addObject("lastPageNumber", Math.ceil((double)countAll/pageSize));
 
         return modelAndView;
     }
