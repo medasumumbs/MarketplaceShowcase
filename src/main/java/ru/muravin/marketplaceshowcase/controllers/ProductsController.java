@@ -99,10 +99,7 @@ public class ProductsController {
             csvToBean.setMappingStrategy(beanStrategy);
             csvToBean.setCsvReader(csvReader);
             List<ProductToUIDto> products = csvToBean.parse();
-            products.forEach(product -> {
-                System.out.println(product.toString());
-                /// TODO: ЗАМЕНИТЬ ВЫВОД СОХРАНЕНИЕМ
-            });
+            products.forEach(productsService::save);
 
             // save users list on model
             model.addAttribute(

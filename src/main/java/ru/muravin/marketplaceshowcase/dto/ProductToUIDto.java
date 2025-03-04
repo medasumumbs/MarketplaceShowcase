@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import ru.muravin.marketplaceshowcase.models.Product;
 
+import java.nio.charset.StandardCharsets;
+
 @Data
 @NoArgsConstructor
 public class ProductToUIDto {
@@ -25,5 +27,11 @@ public class ProductToUIDto {
                 if (product.getImageBase64()!=null) {
                         this.setImageBase64(new String(product.getImageBase64()));
                 }
+        }
+        public Product transformToProduct() {
+                Product product = new Product();
+                BeanUtils.copyProperties(this, product);
+                product.setImageBase64(imageBase64.getBytes(StandardCharsets.UTF_8));
+                return product;
         }
 }

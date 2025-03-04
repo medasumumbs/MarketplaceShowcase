@@ -20,6 +20,9 @@ public class ProductsService {
         return repository.findAll(pageRequest)
                 .stream().map(ProductToUIDto::new).collect(Collectors.toList());
     }
+    public void save(ProductToUIDto productToUIDto) {
+        repository.save(productToUIDto.transformToProduct());
+    }
     public Long countAll() {
         return repository.count();
     }

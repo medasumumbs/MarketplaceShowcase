@@ -5,6 +5,11 @@
     <title>Импорт CSV-файла товаров</title>
 </head>
 <body>
+<div>
+    <a th:href="@{/products}" style="float:right;">
+        <b>Вернуться к списку товаров &cudarrr;</b>
+    </a>
+</div>
 <form enctype="multipart/form-data" th:method="POST" th:action="@{/products/uploadCSV}">
     <div>
         <label for="csv">Файл: </label>
