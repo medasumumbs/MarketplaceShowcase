@@ -10,6 +10,7 @@ import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.exceptions.CsvValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -44,12 +45,20 @@ public class ProductsController {
     @GetMapping
     @Transactional
     public ModelAndView getProducts(@RequestParam(required = false) String search,
-                                    @RequestParam(required = false) String sort,
+                                    @RequestParam(defaultValue = "id") String sort,
                                     @RequestParam(defaultValue = "10") Integer pageSize,
                                     @RequestParam(defaultValue = "1") Integer pageNumber
     ) {
         ModelAndView modelAndView = new ModelAndView("main.html");
-        modelAndView.addObject("products", productsService.findAll(PageRequest.of(pageNumber-1, pageSize)));
+        String sortingColumn = "id";
+        if (sort.equals("ALPHA")) {
+            sortingColumn = "name";
+        } else if (sort.equals("PRICE")) {
+            sortingColumn = "price";
+        }
+        Sort sortingObject = Sort.by(sortingColumn);
+        var products = productsService.findAll(PageRequest.of(pageNumber-1, pageSize, sortingObject));
+        modelAndView.addObject("products", products);
         modelAndView.addObject("search", search);
         modelAndView.addObject("sort", sort);
         modelAndView.addObject("pageSize", pageSize);
@@ -105,15 +114,19 @@ public class ProductsController {
             model.addAttribute(
                     "message", "Импорт завершен успешно, продуктов импортировано: " + products.size()
             );
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            throw ex;
         }
         return "uploadCSVStatus";
     }
-    @ExceptionHandler(Exception.class)
-    public String errorPage(Model model, Exception exception) {
+    @ExceptionHandler({IOException.class, CsvValidationException.class})
+    public String CSVErrorPage(Model model, Exception exception) {
+        exception.printStackTrace();
         model.addAttribute("message", "Ошибка импорта - проверьте файл на корректность: " + exception.getCause());
+        return "errorPage";
+    }
+    @ExceptionHandler(Exception.class)
+    public String unknownErrorPage(Model model, Exception exception) {
+        exception.printStackTrace();
+        model.addAttribute("message", "Неизвестная ошибка: " + exception.getMessage());
         return "errorPage";
     }
 
