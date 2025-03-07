@@ -25,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 
+import ru.muravin.marketplaceshowcase.exceptions.UnknownProductException;
 import ru.muravin.marketplaceshowcase.services.CartService;
 import ru.muravin.marketplaceshowcase.services.ProductsService;
 
@@ -96,6 +97,16 @@ public class ProductsController {
         cartService.removeCartItem(itemId.longValue());
         return "redirect:/products";
     }
+    @PostMapping(value = "/{id1}/changeCartItemQuantity/{id}", params = "action=plus")
+    public String increaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
+        cartService.addCartItem(itemId.longValue());
+        return "redirect:/products/"+itemId;
+    }
+    @PostMapping(value = "/{id1}/changeCartItemQuantity/{id}", params = "action=minus")
+    public String decreaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
+        cartService.removeCartItem(itemId.longValue());
+        return "redirect:/products/"+itemId;
+    }
 
 
     @GetMapping("/uploadCSV")
@@ -145,6 +156,13 @@ public class ProductsController {
         }
         return "uploadCSVStatus";
     }
+
+    @GetMapping("/{id}")
+    public String itemPage(Model model, @PathVariable(name = "id") Long id) {
+        model.addAttribute("product", productsService.findById(id));
+        return "item";
+    }
+
     @ExceptionHandler({IOException.class, CsvValidationException.class})
     public String CSVErrorPage(Model model, Exception exception) {
         exception.printStackTrace();

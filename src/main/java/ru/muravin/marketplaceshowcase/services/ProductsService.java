@@ -4,10 +4,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
+import ru.muravin.marketplaceshowcase.exceptions.UnknownProductException;
+import ru.muravin.marketplaceshowcase.models.CartItem;
+import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.repositories.ProductsRepository;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ProductsService {
@@ -21,7 +25,7 @@ public class ProductsService {
     public List<ProductToUIDto> findAll(PageRequest pageRequest) {
         var products = repository.findAll(pageRequest);
         var dtoList = products.stream().map(ProductToUIDto::new).toList();
-        enrichDtoListWithCartQuantities(dtoList);
+        enrichDtoListWithCartQuantities(dtoList, cartService.getCartItems(1l));
         return dtoList;
     }
     public void save(ProductToUIDto productToUIDto) {
@@ -34,15 +38,14 @@ public class ProductsService {
     public List<ProductToUIDto> findByNameLike(String search, PageRequest pageRequest) {
         var products = repository.findByNameLike('%' + search + '%', pageRequest);
         var dtoList = products.stream().map(ProductToUIDto::new).toList();
-        enrichDtoListWithCartQuantities(dtoList);
+        enrichDtoListWithCartQuantities(dtoList, cartService.getCartItems(1l));
         return dtoList;
     }
     public Long countByNameLike(String search) {
         return repository.countByNameLike('%' + search + '%');
     }
 
-    private void enrichDtoListWithCartQuantities(List<ProductToUIDto> dtoList) {
-        var cartItems = cartService.getCartItems(cartService.getCartById(1L));
+    private void enrichDtoListWithCartQuantities(List<ProductToUIDto> dtoList, List<CartItem> cartItems) {
         var productsMap = new HashMap<>();
         dtoList.forEach(productToUIDto -> {
             productsMap.put(productToUIDto.getId(), productToUIDto);
@@ -55,5 +58,11 @@ public class ProductsService {
                 ((ProductToUIDto)productsMap.get(cartItem.getProduct().getId())).setQuantityInCart(cartItem.getQuantity());
             }
         });
+    }
+    public ProductToUIDto findById(Long id) {
+        var product = repository.findById(id);
+        var dto = new ProductToUIDto(product.orElseThrow(()->new UnknownProductException("Product "+id+" not found")));
+        enrichDtoListWithCartQuantities(List.of(dto), cartService.getCartItems(1l));
+        return dto;
     }
 }

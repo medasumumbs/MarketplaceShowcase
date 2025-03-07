@@ -71,4 +71,7 @@ public class CartService {
     public List<CartItem> getCartItems(Cart cart) {
         return cartItemRepository.findAllByCart(cart);
     }
+    public List<CartItem> getCartItems(Long cartId) {
+        return getCartItems(getCartById(cartId));
+    }
 }
