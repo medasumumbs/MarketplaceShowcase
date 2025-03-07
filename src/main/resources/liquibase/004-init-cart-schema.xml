@@ -80,7 +80,7 @@
             <column name="product_count" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="product_price" type="bigint">
+            <column name="product_price" type="float">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -119,5 +119,11 @@
         <rollback>
             <dropForeignKeyConstraint baseTableName="cart_products" constraintName="fk_cart_products_products"/>
         </rollback>
+    </changeSet>
+    <changeSet id="1740908840643-4" author="author">
+        <insert runAlways="true" tableName="carts">
+            <column name="id" valueSequenceNext="cart_sequence"/>
+            <column name="user_id" value="1"/>
+        </insert>
     </changeSet>
 </databaseChangeLog>

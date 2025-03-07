@@ -22,6 +22,8 @@ public class ProductToUIDto {
 
         private String imageBase64;
 
+        private Integer quantityInCart;
+
         public ProductToUIDto(Product product) {
                 BeanUtils.copyProperties(product, this);
                 if (product.getImageBase64()!=null) {

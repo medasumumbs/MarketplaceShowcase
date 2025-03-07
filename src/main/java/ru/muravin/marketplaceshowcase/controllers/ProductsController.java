@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 
+import ru.muravin.marketplaceshowcase.services.CartService;
 import ru.muravin.marketplaceshowcase.services.ProductsService;
 
 import java.io.BufferedReader;
@@ -36,10 +38,12 @@ import java.util.List;
 @RequestMapping("/products")
 public class ProductsController {
     private final ProductsService productsService;
+    private final CartService cartService;
 
     @Autowired
-    public ProductsController(ProductsService productsService){
+    public ProductsController(ProductsService productsService, CartService cartService){
         this.productsService = productsService;
+        this.cartService = cartService;
     }
 
     @GetMapping
@@ -82,6 +86,16 @@ public class ProductsController {
         return modelAndView;
     }
 
+    @PostMapping(value = "/changeCartItemQuantity/{id}", params = "action=plus")
+    public String increaseCartItemQuantity(@PathVariable(name = "id") Integer itemId) {
+        cartService.addCartItem(itemId.longValue());
+        return "redirect:/products";
+    }
+    @PostMapping(value = "/changeCartItemQuantity/{id}", params = "action=minus")
+    public String decreaseCartItemQuantity(@PathVariable(name = "id") Integer itemId) {
+        cartService.removeCartItem(itemId.longValue());
+        return "redirect:/products";
+    }
 
 
     @GetMapping("/uploadCSV")

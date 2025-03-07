@@ -10,7 +10,7 @@ import java.util.List;
 
 @Repository
 public interface ProductsRepository extends JpaRepository<Product, Long> {
-    List<ProductToUIDto> findByNameLike(String search, PageRequest pageRequest);
+    List<Product> findByNameLike(String search, PageRequest pageRequest);
 
     Long countByNameLike(String search);
 }
