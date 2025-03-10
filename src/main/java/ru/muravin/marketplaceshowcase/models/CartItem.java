@@ -36,12 +36,9 @@ public class CartItem {
     @Column(name = "product_count")
     private Integer quantity;
 
-    @Column(name = "product_price")
-    private Double price;
 
     public CartItem(Product product, Cart cart) {
         this.product = product;
-        this.price = product.getPrice();
         this.cart = cart;
         this.quantity = 1;
     }

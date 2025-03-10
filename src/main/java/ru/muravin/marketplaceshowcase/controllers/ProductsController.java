@@ -107,6 +107,16 @@ public class ProductsController {
         cartService.removeCartItem(itemId.longValue());
         return "redirect:/products/"+itemId;
     }
+    @PostMapping(value = "/cart/changeCartItemQuantity/{id}", params = "action=plus")
+    public String increaseCartItemQuantityAndShowCart(@PathVariable(name = "id") Integer itemId) {
+        cartService.addCartItem(itemId.longValue());
+        return "redirect:/cart";
+    }
+    @PostMapping(value = "/cart/changeCartItemQuantity/{id}", params = "action=minus")
+    public String decreaseCartItemQuantityAndShowCart(@PathVariable(name = "id") Integer itemId) {
+        cartService.removeCartItem(itemId.longValue());
+        return "redirect:/cart";
+    }
 
 
     @GetMapping("/uploadCSV")

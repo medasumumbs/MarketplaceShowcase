@@ -2,6 +2,7 @@ package ru.muravin.marketplaceshowcase.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownCartException;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownProductException;
 import ru.muravin.marketplaceshowcase.models.Cart;
@@ -11,6 +12,7 @@ import ru.muravin.marketplaceshowcase.repositories.CartsRepository;
 import ru.muravin.marketplaceshowcase.repositories.ProductsRepository;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class CartService {
@@ -73,5 +75,15 @@ public class CartService {
     }
     public List<CartItem> getCartItems(Long cartId) {
         return getCartItems(getCartById(cartId));
+    }
+    public List<CartItemToUIDto> getCartItemDtoList(Long cartId) {
+        return getCartItems(cartId).stream().map(CartItemToUIDto::new).toList();
+    }
+
+    public Double getCartSum(long cartId) {
+        AtomicReference<Double> sum = new AtomicReference<>(Double.valueOf(0));
+        getCartItems(cartId)
+                .forEach((item) -> sum.updateAndGet(v -> v + (item.getQuantity() * item.getProduct().getPrice())));
+        return sum.get();
     }
 }
