@@ -6,52 +6,51 @@
 </head>
 
 <body>
-<!-- В href ссылка на страницу заказов -->
-<a href="..." style="float:right;">
+<a href="/orders" style="float:right;">
     <b>ЗАКАЗЫ &cudarrr;</b>
 </a>
-<!-- В href ссылка на корзину -->
-<a href="..." style="float:right;">
+<a href="/cart" style="float:right;">
     <b>КОРЗИНА &cudarrr;</b>
 </a>
-<!-- В href ссылка на главную страницу -->
-<a href="..." style="float:right;">
+<a href="/products" style="float:right;">
     <b>ГЛАВНАЯ &cudarrr;</b>
 </a>
 <!-- В if true, если перешли со страницы оформления заказа, false в остальных случаях -->
-<h1 style="text-align:center" th:if="...">Поздравляем! Успешная покупка! &#128578;</h1>
+<h1 style="text-align:center" th:if="${justBought}">Поздравляем! Успешная покупка! &#128578;</h1>
 <table style="width:70%;margin-left:auto;margin-right:auto;">
     <tr>
         <td>
             <!-- В text номер заказа -->
-            <h2 th:text="..."></h2>
+            <h2 th:text="${order.getId()}"></h2>
         </td>
     </tr>
     <!-- Итерируемся по товарам из заказа -->
-    <tr th:each="...">
+    <tr th:each="orderItem: ${order.getOrderItems()}">
         <td>
             <table>
                 <tr>
                     <td>
                         <!-- В href ссылка на страницу с карточкой товара -->
-                        <a th:href="...">
+                        <a th:href="@{/products/{id}(id=${orderItem.getProduct().getId()})}">
                             <!-- В src ссылка изображение товара -->
-                            <img width="300" height="300" th:src="...">
+                            <img width="300" height="300"
+                                 th:src="'data:image/png;base64, '+${orderItem.getProduct().getImageBase64()}"
+                            >
                         </a>
                     </td>
                 </tr>
                 <tr>
                     <td>
                         <!-- В text название товара -->
-                        <b th:text="..."></b>
+                        <b th:text="${orderItem.getProduct().getName()}"></b>
                     </td>
                     <td>
                         <!-- В text описание товара -->
-                        <b th:text="..."></b>
+                        <b th:text="${orderItem.getProduct().getDescription()}"></b>
                     </td>
                     <td>
                         <!-- В text цена товара -->
-                        <b th:text="..."></b>
+                        <b th:text="${orderItem.getPrice()}"></b>
                     </td>
                 </tr>
             </table>
@@ -60,7 +59,7 @@
     <tr>
         <td>
             <!-- В text общая сумма заказа -->
-            <h3 th:text="..."></h3>
+            <h3 th:text="${order.getSum()}"></h3>
         </td>
     </tr>
 </table>

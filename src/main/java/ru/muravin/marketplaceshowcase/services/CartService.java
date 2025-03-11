@@ -86,4 +86,8 @@ public class CartService {
                 .forEach((item) -> sum.updateAndGet(v -> v + (item.getQuantity() * item.getProduct().getPrice())));
         return sum.get();
     }
+
+    public void deleteAllItemsByCart(Cart cart) {
+        cartItemRepository.deleteByCart(cart);
+    }
 }

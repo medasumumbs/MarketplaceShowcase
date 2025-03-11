@@ -15,19 +15,18 @@ import lombok.NoArgsConstructor;
 
 @Data
 @Entity
-@Table(name = "cart_products")
+@Table(name = "order_products")
 @NoArgsConstructor
 @AllArgsConstructor
-public class CartItem {
+public class OrderItem {
     @Id()
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "cart_product_seq")
-    @SequenceGenerator(name = "cart_product_seq", sequenceName = "cart_product_sequence", allocationSize = 1)
-    @Column(name = "id")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "cart_seq")
+    @SequenceGenerator(name = "cart_seq", sequenceName = "cart_sequence", allocationSize = 1)
     private Long Id;
 
     @ManyToOne
-    @JoinColumn(name = "cart_id", referencedColumnName = "id")
-    private Cart cart;
+    @JoinColumn(name = "order_id", referencedColumnName = "id")
+    private Order order;
 
     @ManyToOne
     @JoinColumn(name = "product_id", referencedColumnName = "id")
@@ -36,10 +35,14 @@ public class CartItem {
     @Column(name = "product_count")
     private Integer quantity;
 
+    @Column(name = "product_price")
+    private Double price;
 
-    public CartItem(Product product, Cart cart) {
-        this.product = product;
-        this.cart = cart;
-        this.quantity = 1;
+    public OrderItem(CartItem cartItem, Order order) {
+        this.order = order;
+        this.product = cartItem.getProduct();
+        this.quantity = cartItem.getQuantity();
+        this.price = cartItem.getProduct().getPrice();
+
     }
 }

@@ -60,6 +60,9 @@
             </not>
         </preConditions>
         <createTable tableName="order_products">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true"/>
+            </column>
             <column name="order_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
@@ -69,7 +72,7 @@
             <column name="product_count" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="product_price" type="bigint">
+            <column name="product_price" type="float">
                 <constraints nullable="false"/>
             </column>
         </createTable>
