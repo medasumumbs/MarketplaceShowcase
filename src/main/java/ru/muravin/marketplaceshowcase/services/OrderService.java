@@ -2,6 +2,7 @@ package ru.muravin.marketplaceshowcase.services;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.muravin.marketplaceshowcase.dto.OrderToUIDto;
 import ru.muravin.marketplaceshowcase.exceptions.NoOrderException;
 import ru.muravin.marketplaceshowcase.exceptions.NoUserException;
 import ru.muravin.marketplaceshowcase.models.Cart;
@@ -14,6 +15,8 @@ import ru.muravin.marketplaceshowcase.repositories.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -49,5 +52,9 @@ public class OrderService {
 
     public Order findOrderById(Long id) {
         return orderRepository.findById(id).orElseThrow(()->new NoOrderException("Order not found"));
+    }
+
+    public List<OrderToUIDto> findAll() {
+        return orderRepository.findAll().stream().map(OrderToUIDto::new).collect(Collectors.toList());
     }
 }

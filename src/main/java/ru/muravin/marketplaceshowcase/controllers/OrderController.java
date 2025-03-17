@@ -37,4 +37,9 @@ public class OrderController {
         model.addAttribute("order",new OrderToUIDto(orderService.findOrderById(id)));
         return "order";
     }
+    @GetMapping
+    public String getOrders(Model model) {
+        model.addAttribute("orders", orderService.findAll());
+        return "orders";
+    }
 }
