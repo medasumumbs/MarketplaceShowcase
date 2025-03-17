@@ -2,7 +2,7 @@ server:
     port: 8081
 spring:
     datasource:
-        url: jdbc:postgresql://localhost:5423/mydatabase?currentSchema=marketplace
+        url: jdbc:postgresql://localhost:5432/mydatabase?currentSchema=marketplace
         username: myuser
         password: secret
     sql:
