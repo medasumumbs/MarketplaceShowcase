@@ -9,12 +9,16 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import ru.muravin.marketplaceshowcase.MarketplaceShowcaseApplication;
 import ru.muravin.marketplaceshowcase.TestcontainersConfiguration;
 import ru.muravin.marketplaceshowcase.dto.OrderToUIDto;
+import ru.muravin.marketplaceshowcase.models.Cart;
+import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.Order;
 import ru.muravin.marketplaceshowcase.models.OrderItem;
 import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.models.User;
+import ru.muravin.marketplaceshowcase.repositories.OrderItemRepository;
 import ru.muravin.marketplaceshowcase.repositories.OrderRepository;
 import ru.muravin.marketplaceshowcase.repositories.ProductsRepository;
+import ru.muravin.marketplaceshowcase.repositories.UserRepository;
 import ru.muravin.marketplaceshowcase.services.CartService;
 import ru.muravin.marketplaceshowcase.services.OrderService;
 import ru.muravin.marketplaceshowcase.services.ProductsService;
@@ -29,14 +33,18 @@ import static org.mockito.Mockito.*;
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(classes = MarketplaceShowcaseApplication.class)
 public class OrderServiceTest {
-    @MockitoBean(reset = MockReset.BEFORE)
-    CartService cartService;
+
 
     @MockitoBean(reset = MockReset.BEFORE)
     OrderRepository repository;
-
+    @MockitoBean(reset = MockReset.BEFORE)
+    private UserRepository userRepository;
+    @MockitoBean(reset = MockReset.BEFORE)
+    private OrderItemRepository orderItemRepository;
     @Autowired
     private OrderService orderService;
+    @MockitoBean(reset = MockReset.BEFORE)
+    CartService cartService;
 
     @Test
     void findByIdTest() {
@@ -68,5 +76,23 @@ public class OrderServiceTest {
         when(repository.findAll()).thenReturn(listOfOrders);
         var result = orderService.findAll();
         assertEquals(listOfOrders.stream().map(OrderToUIDto::new).toList(), result);
+    }
+    @Test
+    void saveTest() {
+        var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
+        var user = new User();
+        user.setId(1L);
+        when(userRepository.findById(1l)).thenReturn(Optional.of(user));
+        Cart cart = new Cart();
+        var cartItem = new CartItem();
+        cartItem.setQuantity(2);
+        cartItem.setCart(cart);
+        cartItem.setProduct(product);
+        when(cartService.getCartItems(cart)).thenReturn(List.of(cartItem,cartItem));
+        orderService.addOrder(cart);
+
+        verify(repository, times(1)).save(any(Order.class));
+        verify(userRepository, times(1)).findById(1l);
+        verify(orderItemRepository, times(2)).save(any(OrderItem.class));
     }
 }
