@@ -7,6 +7,8 @@ import ru.muravin.marketplaceshowcase.models.Cart;
 import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.OrderItem;
 
+import java.util.Objects;
+
 @Data
 @NoArgsConstructor
 public class OrderItemToUIDto {
@@ -27,4 +29,17 @@ public class OrderItemToUIDto {
         this.price = orderItem.getPrice();
         this.product = new ProductToUIDto(orderItem.getProduct());
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        OrderItemToUIDto that = (OrderItemToUIDto) o;
+        return Objects.equals(Id, that.Id) && Objects.equals(product, that.product) && Objects.equals(quantity, that.quantity) && Objects.equals(price, that.price);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(Id, product, quantity, price);
+    }
 }
+

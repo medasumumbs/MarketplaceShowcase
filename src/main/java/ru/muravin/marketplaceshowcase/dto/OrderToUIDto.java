@@ -8,6 +8,7 @@ import ru.muravin.marketplaceshowcase.models.OrderItem;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Data
 public class OrderToUIDto {
@@ -26,6 +27,17 @@ public class OrderToUIDto {
             orderItems.add(new OrderItemToUIDto(orderItem,this));
             sum += orderItem.getPrice() * orderItem.getQuantity();
         }
+    }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        OrderToUIDto that = (OrderToUIDto) o;
+        return Objects.equals(id, that.id) && Objects.equals(sum, that.sum) && Objects.equals(orderItems, that.orderItems) && Objects.equals(orderDate, that.orderDate);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, sum, orderItems, orderDate);
     }
 }
