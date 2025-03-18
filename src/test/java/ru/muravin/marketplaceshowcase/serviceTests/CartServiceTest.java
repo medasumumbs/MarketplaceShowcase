@@ -7,6 +7,7 @@ import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import ru.muravin.marketplaceshowcase.MarketplaceShowcaseApplication;
 import ru.muravin.marketplaceshowcase.TestcontainersConfiguration;
+import ru.muravin.marketplaceshowcase.exceptions.UnknownCartException;
 import ru.muravin.marketplaceshowcase.models.Cart;
 import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.Product;
@@ -15,6 +16,7 @@ import ru.muravin.marketplaceshowcase.repositories.CartsRepository;
 import ru.muravin.marketplaceshowcase.repositories.ProductsRepository;
 import ru.muravin.marketplaceshowcase.services.CartService;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -87,32 +89,67 @@ public class CartServiceTest {
         verify(cartsRepository, times(2)).findById(1L);
         verify(cartItemRepository, times(1)).delete(any(CartItem.class));
     }
-    /*
-
-    public Cart getCartById(long id) {
-        return cartsRepository.findById(id).orElseThrow(
-                () -> new UnknownCartException("Cart "+id+" not found")
-        );
+    @Test
+    void getCartByIdTest() {
+        var cart = new Cart();
+        when(cartsRepository.findById(1L)).thenReturn(Optional.of(cart));
+        var result = cartService.getCartById(1L);
+        assertNotNull(result);
+        assertEquals(cart,result);
+    }
+    @Test
+    void getCartByIdTestThrowsError() {
+        when(cartsRepository.findById(1L)).thenReturn(Optional.empty());
+        assertThrows(UnknownCartException.class,()->cartService.getCartById(1L));
+    }
+    @Test
+    void getCartItemsTest() {
+        var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
+        var cart = new Cart();
+        var cartItem = new CartItem();
+        cartItem.setCart(cart);
+        cartItem.setProduct(product);
+        cartItem.setQuantity(2);
+        cartItem.setId(1L);
+        when(cartItemRepository.findAllByCart(cart)).thenReturn(List.of(cartItem));
+        var result = cartService.getCartItems(cart);
+        assertNotNull(result);
+        assertEquals(cartItem,result.getFirst());
+    }
+    @Test
+    void getCartItemsByIdTest() {
+        var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
+        var cart = new Cart();
+        var cartItem = new CartItem();
+        cartItem.setCart(cart);
+        cartItem.setProduct(product);
+        cartItem.setQuantity(2);
+        cartItem.setId(1L);
+        when(cartsRepository.findById(1L)).thenReturn(Optional.of(cart));
+        when(cartItemRepository.findAllByCart(cart)).thenReturn(List.of(cartItem));
+        var result = cartService.getCartItems(1L);
+        assertNotNull(result);
+        assertEquals(cartItem,result.getFirst());
     }
 
-    public List<CartItem> getCartItems(Cart cart) {
-        return cartItemRepository.findAllByCart(cart);
+    @Test
+    void getCartSumTest() {
+        var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
+        var cart = new Cart();
+        var cartItem = new CartItem();
+        cartItem.setCart(cart);
+        cartItem.setProduct(product);
+        cartItem.setQuantity(2);
+        cartItem.setId(1L);
+        when(cartsRepository.findById(1L)).thenReturn(Optional.of(cart));
+        when(cartItemRepository.findAllByCart(cart)).thenReturn(List.of(cartItem,cartItem));
+        assertEquals(100d, cartService.getCartSum(1L));
     }
-    public List<CartItem> getCartItems(Long cartId) {
-        return getCartItems(getCartById(cartId));
+    @Test
+    void deleteAllItemsByCartTest() {
+        var cart = new Cart();
+        doNothing().when(cartItemRepository).deleteByCart(any(cart.getClass()));
+        cartService.deleteAllItemsByCart(cart);
+        verify(cartItemRepository, times(1)).deleteByCart(cart);
     }
-    public List<CartItemToUIDto> getCartItemDtoList(Long cartId) {
-        return getCartItems(cartId).stream().map(CartItemToUIDto::new).toList();
-    }
-
-    public Double getCartSum(long cartId) {
-        AtomicReference<Double> sum = new AtomicReference<>(Double.valueOf(0));
-        getCartItems(cartId)
-                .forEach((item) -> sum.updateAndGet(v -> v + (item.getQuantity() * item.getProduct().getPrice())));
-        return sum.get();
-    }
-
-    public void deleteAllItemsByCart(Cart cart) {
-        cartItemRepository.deleteByCart(cart);
-    }*/
 }
