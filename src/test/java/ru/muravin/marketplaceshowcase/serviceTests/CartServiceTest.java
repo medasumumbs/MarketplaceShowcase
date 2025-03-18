@@ -59,44 +59,35 @@ public class CartServiceTest {
         verify(productsRepository, times(2)).findById(1L);
         verify(cartsRepository, times(2)).findById(1L);
         verify(cartItemRepository, times(2)).save(any(cartItem.getClass()));
+    }
+    @Test
+    void removeCartItemTest() {
+        var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
+        when(productsRepository.findById(1L)).thenReturn(Optional.of(product));
+        var cart = new Cart();
+        cart.setId(1L);
+        when(cartsRepository.findById(1L)).thenReturn(Optional.of(cart));
 
+        CartItem cartItem = new CartItem();
+        cartItem.setCart(cart);
+        cartItem.setProduct(product);
+        cartItem.setQuantity(2);
+        cartItem.setId(1L);
+
+
+        when(cartItemRepository.findByProductAndCart(product,cart)).thenReturn(Optional.of(cartItem));
+        cartService.removeCartItem(product.getId());
+        verify(cartItemRepository, times(1)).findByProductAndCart(product,cart);
+        verify(productsRepository, times(1)).findById(1L);
+        verify(cartsRepository, times(1)).findById(1L);
+        verify(cartItemRepository, times(1)).save(any(CartItem.class));
+        cartService.removeCartItem(product.getId());
+        verify(cartItemRepository, times(2)).findByProductAndCart(product,cart);
+        verify(productsRepository, times(2)).findById(1L);
+        verify(cartsRepository, times(2)).findById(1L);
+        verify(cartItemRepository, times(1)).delete(any(CartItem.class));
     }
     /*
-    * public void addCartItem(Long productId) {
-        var product = productsRepository.findById(productId).orElseThrow(
-                () -> new UnknownProductException("Product "+productId+" not found")
-        );
-        // Пока в приложении один пользователь - корзину ищем как первую в базе
-        var cart = cartsRepository.findById(1l).orElseThrow(() -> new UnknownCartException("Cart "+1l+" not found"));
-        var cartItemFromRepo = cartItemRepository.findByProductAndCart(product, cart);
-        CartItem cartItem;
-        if (cartItemFromRepo.isPresent()) {
-            cartItem = cartItemFromRepo.get();
-            cartItem.setQuantity(cartItem.getQuantity() + 1);
-        } else {
-            cartItem = new CartItem(product, cart);
-        }
-        cartItemRepository.save(cartItem);
-    }
-
-    public void removeCartItem(Long productId) {
-        var product = productsRepository.findById(productId).orElseThrow(
-                () -> new UnknownProductException("Product "+productId+" not found")
-        );
-        // Пока в приложении один пользователь - корзину ищем как первую в базе
-        var cart = cartsRepository.findById(1l).orElseThrow(() -> new UnknownCartException("Cart "+1l+" not found"));
-        var cartItemFromRepo = cartItemRepository.findByProductAndCart(product, cart);
-        CartItem cartItem;
-        if (cartItemFromRepo.isPresent()) {
-            cartItem = cartItemFromRepo.get();
-            cartItem.setQuantity(cartItem.getQuantity() - 1);
-            if (cartItem.getQuantity() == 0) {
-                cartItemRepository.delete(cartItem);
-            } else {
-                cartItemRepository.save(cartItem);
-            }
-        }
-    }
 
     public Cart getCartById(long id) {
         return cartsRepository.findById(id).orElseThrow(
