@@ -33,7 +33,7 @@ public class CartService {
                 () -> new UnknownProductException("Product "+productId+" not found")
         );
         // Пока в приложении один пользователь - корзину ищем как первую в базе
-        var cart = cartsRepository.findById(1l).orElseThrow(() -> new UnknownCartException("Cart "+1l+" not found"));
+        var cart = cartsRepository.findAll().stream().findFirst().orElseThrow(() -> new UnknownCartException("Cart "+1l+" not found"));
         var cartItemFromRepo = cartItemRepository.findByProductAndCart(product, cart);
         CartItem cartItem;
         if (cartItemFromRepo.isPresent()) {
@@ -50,7 +50,7 @@ public class CartService {
                 () -> new UnknownProductException("Product "+productId+" not found")
         );
         // Пока в приложении один пользователь - корзину ищем как первую в базе
-        var cart = cartsRepository.findById(1l).orElseThrow(() -> new UnknownCartException("Cart "+1l+" not found"));
+        var cart = cartsRepository.findAll().stream().findFirst().orElseThrow(() -> new UnknownCartException("Cart not found"));
         var cartItemFromRepo = cartItemRepository.findByProductAndCart(product, cart);
         CartItem cartItem;
         if (cartItemFromRepo.isPresent()) {
@@ -89,5 +89,9 @@ public class CartService {
 
     public void deleteAllItemsByCart(Cart cart) {
         cartItemRepository.deleteByCart(cart);
+    }
+
+    public Long getFirstCartId() {
+        return cartsRepository.findAll().stream().findFirst().orElseThrow(() -> new UnknownCartException("Cart not found")).getId();
     }
 }

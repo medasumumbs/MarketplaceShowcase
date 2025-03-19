@@ -24,8 +24,8 @@ public class CartController {
     }
     @GetMapping
     public String showCart(Model model) {
-        model.addAttribute("sumOfOrder",cartService.getCartSum(1L));
-        model.addAttribute("cartItems",cartService.getCartItemDtoList(1L));
+        model.addAttribute("sumOfOrder",cartService.getCartSum(cartService.getFirstCartId()));
+        model.addAttribute("cartItems",cartService.getCartItemDtoList(cartService.getFirstCartId()));
         return "cart";
     }
 }
