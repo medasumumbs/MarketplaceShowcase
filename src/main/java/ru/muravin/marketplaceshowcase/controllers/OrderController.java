@@ -26,7 +26,7 @@ public class OrderController {
 
     @PostMapping
     public String addOrder() {
-        var cart = cartService.getCartById(1L);
+        var cart = cartService.getCartById(cartService.getFirstCartId());
         Order order = orderService.addOrder(cart);
         return "redirect:/orders/" + order.getId() + "?justBought=true";
     }
