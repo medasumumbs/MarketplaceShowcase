@@ -25,7 +25,7 @@ public class ProductsService {
     public List<ProductToUIDto> findAll(PageRequest pageRequest) {
         var products = repository.findAll(pageRequest);
         var dtoList = products.stream().map(ProductToUIDto::new).toList();
-        enrichDtoListWithCartQuantities(dtoList, cartService.getCartItems(1l));
+        enrichDtoListWithCartQuantities(dtoList, cartService.getCartItems(cartService.getFirstCartId()));
         return dtoList;
     }
     public void save(ProductToUIDto productToUIDto) {
@@ -38,7 +38,7 @@ public class ProductsService {
     public List<ProductToUIDto> findByNameLike(String search, PageRequest pageRequest) {
         var products = repository.findByNameLike('%' + search + '%', pageRequest);
         var dtoList = products.stream().map(ProductToUIDto::new).toList();
-        enrichDtoListWithCartQuantities(dtoList, cartService.getCartItems(1l));
+        enrichDtoListWithCartQuantities(dtoList, cartService.getCartItems(cartService.getFirstCartId()));
         return dtoList;
     }
     public Long countByNameLike(String search) {
@@ -62,7 +62,7 @@ public class ProductsService {
     public ProductToUIDto findById(Long id) {
         var product = repository.findById(id);
         var dto = new ProductToUIDto(product.orElseThrow(()->new UnknownProductException("Product "+id+" not found")));
-        enrichDtoListWithCartQuantities(List.of(dto), cartService.getCartItems(1l));
+        enrichDtoListWithCartQuantities(List.of(dto), cartService.getCartItems(cartService.getFirstCartId()));
         return dto;
     }
 }
