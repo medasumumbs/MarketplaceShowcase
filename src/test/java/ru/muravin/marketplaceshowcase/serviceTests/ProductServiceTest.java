@@ -66,8 +66,7 @@ public class ProductServiceTest {
         assertEquals(realResult.get(1), secondDto);
         verify(repository, times(1)).findAll(pageRequest);
         verifyNoMoreInteractions(repository);
-        verify(cartService, times(1)).getCartItems(1l);
-        verifyNoMoreInteractions(cartService);
+        verify(cartService, times(1)).getCartItems(any(Long.class));
     }
     @Test
     void testSave() {

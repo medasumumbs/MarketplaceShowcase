@@ -15,6 +15,7 @@ import ru.muravin.marketplaceshowcase.models.Order;
 import ru.muravin.marketplaceshowcase.models.OrderItem;
 import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.models.User;
+import ru.muravin.marketplaceshowcase.repositories.CartsRepository;
 import ru.muravin.marketplaceshowcase.repositories.OrderItemRepository;
 import ru.muravin.marketplaceshowcase.repositories.OrderRepository;
 import ru.muravin.marketplaceshowcase.repositories.ProductsRepository;
@@ -45,6 +46,8 @@ public class OrderServiceTest {
     private OrderService orderService;
     @MockitoBean(reset = MockReset.BEFORE)
     CartService cartService;
+    @MockitoBean
+    private CartsRepository cartsRepository;
 
     @Test
     void findByIdTest() {
@@ -82,17 +85,18 @@ public class OrderServiceTest {
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         var user = new User();
         user.setId(1L);
-        when(userRepository.findById(1l)).thenReturn(Optional.of(user));
+        when(userRepository.findAll()).thenReturn(List.of(user));
         Cart cart = new Cart();
         var cartItem = new CartItem();
         cartItem.setQuantity(2);
         cartItem.setCart(cart);
         cartItem.setProduct(product);
+        when(cartsRepository.findAll()).thenReturn(List.of(cart));
         when(cartService.getCartItems(cart)).thenReturn(List.of(cartItem,cartItem));
         orderService.addOrder(cart);
 
         verify(repository, times(1)).save(any(Order.class));
-        verify(userRepository, times(1)).findById(1l);
+        verify(userRepository, times(1)).findAll();
         verify(orderItemRepository, times(2)).save(any(OrderItem.class));
     }
 }

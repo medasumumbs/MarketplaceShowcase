@@ -16,6 +16,7 @@ import ru.muravin.marketplaceshowcase.repositories.UserRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,7 +37,7 @@ public class OrderService {
     @Transactional
     public Order addOrder(Cart cart) {
         Order order = new Order();
-        order.setUser(userRepository.findById(1L).orElseThrow(() -> new NoUserException("User not found")));
+        order.setUser(Optional.of(userRepository.findAll().getFirst()).orElseThrow(() -> new NoUserException("User not found")));
         order.setOrderDate(LocalDateTime.now());
         order.setOrderItems(new ArrayList<>());
         orderRepository.save(order);

@@ -49,17 +49,18 @@ public class CartServiceTest {
         cartItem.setProduct(product);
         cartItem.setQuantity(1);
         cartItem.setId(1L);
+        when(cartsRepository.findAll()).thenReturn(List.of(cart));
         when(cartItemRepository.findByProductAndCart(product,cart)).thenReturn(Optional.of(cartItem));
         cartService.addCartItem(product.getId());
         verify(cartItemRepository, times(1)).findByProductAndCart(product,cart);
         verify(productsRepository, times(1)).findById(1L);
-        verify(cartsRepository, times(1)).findById(1L);
+        verify(cartsRepository, times(1)).findAll();
         verify(cartItemRepository, times(1)).save(cartItem);
         when(cartItemRepository.findByProductAndCart(product,cart)).thenReturn(Optional.empty());
         cartService.addCartItem(product.getId());
         verify(cartItemRepository, times(2)).findByProductAndCart(product,cart);
         verify(productsRepository, times(2)).findById(1L);
-        verify(cartsRepository, times(2)).findById(1L);
+        verify(cartsRepository, times(2)).findAll();
         verify(cartItemRepository, times(2)).save(any(cartItem.getClass()));
     }
     @Test
@@ -76,17 +77,17 @@ public class CartServiceTest {
         cartItem.setQuantity(2);
         cartItem.setId(1L);
 
-
+        when(cartsRepository.findAll()).thenReturn(List.of(cart));
         when(cartItemRepository.findByProductAndCart(product,cart)).thenReturn(Optional.of(cartItem));
         cartService.removeCartItem(product.getId());
         verify(cartItemRepository, times(1)).findByProductAndCart(product,cart);
         verify(productsRepository, times(1)).findById(1L);
-        verify(cartsRepository, times(1)).findById(1L);
+        verify(cartsRepository, times(1)).findAll();
         verify(cartItemRepository, times(1)).save(any(CartItem.class));
         cartService.removeCartItem(product.getId());
         verify(cartItemRepository, times(2)).findByProductAndCart(product,cart);
         verify(productsRepository, times(2)).findById(1L);
-        verify(cartsRepository, times(2)).findById(1L);
+        verify(cartsRepository, times(2)).findAll();
         verify(cartItemRepository, times(1)).delete(any(CartItem.class));
     }
     @Test
