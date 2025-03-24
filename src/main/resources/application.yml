@@ -5,6 +5,13 @@ spring:
         url: r2dbc:postgresql://localhost:5432/mydatabase?currentSchema=marketplace
         username: myuser
         password: secret
+        pool:
+            enabled: true                               # Включение пула соединений
+            initial-size: 10                            # Начальное количество соединений в пуле
+            max-size: 50                                # Максимальное количество соединений
+            max-idle-time: 30s                          # Время бездействия соединения перед закрытием
+            max-life-time: 10m                          # Максимальное время жизни соединения
+            validation-query: SELECT 1                  # SQL-запрос для проверки работоспособности соединения
     datasource:
         url: jdbc:postgresql://localhost:5432/mydatabase?currentSchema=marketplace
         username: myuser
