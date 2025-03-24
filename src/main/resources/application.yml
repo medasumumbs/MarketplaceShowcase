@@ -1,6 +1,10 @@
 server:
     port: 8081
 spring:
+    r2dbc:
+        url: r2dbc:postgresql://localhost:5432/mydatabase?currentSchema=marketplace
+        username: myuser
+        password: secret
     datasource:
         url: jdbc:postgresql://localhost:5432/mydatabase?currentSchema=marketplace
         username: myuser
