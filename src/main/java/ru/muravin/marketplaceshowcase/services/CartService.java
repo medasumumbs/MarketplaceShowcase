@@ -87,6 +87,9 @@ public class CartService {
     public Flux<CartItem> getCartItemsFlux(Mono<Long> cartId) {
         return cartId.flatMapMany(cartItemsReactiveRepository::findAllByCart_Id);
     }
+    public Mono<CartItem> getCartItemFlux(Long cartId, Long productId) {
+        return cartItemsReactiveRepository.findByProduct_IdAndCart_Id(cartId, productId);
+    }
     public Flux<CartItemToUIDto> getCartItemsDtoFlux(Mono<Long> cartId) {
         return getCartItemsFlux(cartId).map(CartItemToUIDto::new);
     }

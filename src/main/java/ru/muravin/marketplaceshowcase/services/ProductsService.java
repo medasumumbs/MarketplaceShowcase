@@ -3,46 +3,65 @@ package ru.muravin.marketplaceshowcase.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownProductException;
 import ru.muravin.marketplaceshowcase.models.CartItem;
-import ru.muravin.marketplaceshowcase.models.Product;
-import ru.muravin.marketplaceshowcase.repositories.ProductsRepository;
+import ru.muravin.marketplaceshowcase.repositories.ProductsReactiveRepository;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class ProductsService {
     private final CartService cartService;
-    ProductsRepository repository;
+
+    private final ProductsReactiveRepository productsReactiveRepository;
+
     @Autowired
-    public ProductsService(ProductsRepository repository, CartService cartService) {
-        this.repository = repository;
+    public ProductsService(ProductsReactiveRepository productsReactiveRepository, CartService cartService) {
+        this.productsReactiveRepository = productsReactiveRepository;
         this.cartService = cartService;
     }
-    public List<ProductToUIDto> findAll(PageRequest pageRequest) {
-        var products = repository.findAll(pageRequest);
-        var dtoList = products.stream().map(ProductToUIDto::new).toList();
-        enrichDtoListWithCartQuantities(dtoList, cartService.getCartItems(cartService.getFirstCartId()));
-        return dtoList;
+    public Flux<ProductToUIDto> findAll(PageRequest pageRequest) {
+        var products = productsReactiveRepository.findAll(pageRequest).map(ProductToUIDto::new).collectList();
+        var cartItems = cartService.getCartItemsFlux(cartService.getFirstCartIdMono()).collectList();
+        return Mono.zip(products, cartItems).flatMapMany(tuple -> {
+            enrichDtoListWithCartQuantities(tuple.getT1(), tuple.getT2());
+            return Flux.fromIterable(tuple.getT1());
+        });
     }
-    public void save(ProductToUIDto productToUIDto) {
-        repository.save(productToUIDto.transformToProduct());
+    public Mono<Void> save(ProductToUIDto productToUIDto) {
+        return productsReactiveRepository.save(productToUIDto.transformToProduct()).then();
     }
-    public Long countAll() {
-        return repository.count();
+    public Mono<Long> countAll() {
+        return productsReactiveRepository.count();
     }
 
-    public List<ProductToUIDto> findByNameLike(String search, PageRequest pageRequest) {
-        var products = repository.findByNameLike('%' + search + '%', pageRequest);
-        var dtoList = products.stream().map(ProductToUIDto::new).toList();
-        enrichDtoListWithCartQuantities(dtoList, cartService.getCartItems(cartService.getFirstCartId()));
-        return dtoList;
+    public Flux<ProductToUIDto> findByNameLike(String search, PageRequest pageRequest) {
+        var products = productsReactiveRepository.findByNameLike('%' + search + '%', pageRequest)
+                .map(ProductToUIDto::new).collectList();
+        var cartItems = cartService.getCartItemsFlux(cartService.getFirstCartIdMono()).collectList();
+        return Mono.zip(products, cartItems).flatMapMany(tuple -> {
+            enrichDtoListWithCartQuantities(tuple.getT1(), tuple.getT2());
+            return Flux.fromIterable(tuple.getT1());
+        });
     }
-    public Long countByNameLike(String search) {
-        return repository.countByNameLike('%' + search + '%');
+    public Mono<Long> countByNameLike(String search) {
+        return productsReactiveRepository.countByNameLike('%' + search + '%');
+    }
+
+    public Mono<ProductToUIDto> findById(Long id) {
+        var cartItem = cartService.getCartItemFlux(cartService.getFirstCartIdMono().block(), id);
+        var product = productsReactiveRepository.findById(id).map(ProductToUIDto::new)
+                .switchIfEmpty(Mono.error(()->new UnknownProductException("Product "+id+" not found")));
+        return Mono.zip(cartItem, product).map(tuple -> {
+            var cartItemValue = tuple.getT1();
+            var productValue = tuple.getT2();
+            enrichDtoListWithCartQuantities(List.of(productValue), List.of(cartItemValue));
+            return productValue;
+        });
     }
 
     private void enrichDtoListWithCartQuantities(List<ProductToUIDto> dtoList, List<CartItem> cartItems) {
@@ -58,11 +77,5 @@ public class ProductsService {
                 ((ProductToUIDto)productsMap.get(cartItem.getProduct().getId())).setQuantityInCart(cartItem.getQuantity());
             }
         });
-    }
-    public ProductToUIDto findById(Long id) {
-        var product = repository.findById(id);
-        var dto = new ProductToUIDto(product.orElseThrow(()->new UnknownProductException("Product "+id+" not found")));
-        enrichDtoListWithCartQuantities(List.of(dto), cartService.getCartItems(cartService.getFirstCartId()));
-        return dto;
     }
 }
