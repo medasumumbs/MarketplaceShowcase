@@ -32,9 +32,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Controller
 @RequestMapping("/products")
@@ -50,12 +48,12 @@ public class ProductsController {
 
     @GetMapping
     @Transactional
-    public ModelAndView getProducts(@RequestParam(required = false) String search,
+    public Mono<ServerResponse> getProducts(@RequestParam(required = false) String search,
                                     @RequestParam(defaultValue = "id") String sort,
                                     @RequestParam(defaultValue = "10") Integer pageSize,
                                     @RequestParam(defaultValue = "1") Integer pageNumber
     ) {
-        ModelAndView modelAndView = new ModelAndView("main.html");
+        //ModelAndView modelAndView = new ModelAndView("main.html");
         String sortingColumn = "id";
         if (sort.equals("ALPHA")) {
             sortingColumn = "name";
@@ -66,63 +64,61 @@ public class ProductsController {
         List<ProductToUIDto> products;
 
         var pageRequest = PageRequest.of(pageNumber-1, pageSize, sortingObject);
+        Flux<ProductToUIDto> productsFlux;
         if ((search != null) && (!search.isEmpty())) {
-            products = productsService.findByNameLike(search, pageRequest);
+            productsFlux = productsService.findByNameLike(search, pageRequest);
         } else {
-            products = productsService.findAll(pageRequest);
+            productsFlux = productsService.findAll(pageRequest);
         }
-
-        modelAndView.addObject("products", products);
-        modelAndView.addObject("search", search);
-        modelAndView.addObject("sort", sort);
-        modelAndView.addObject("pageSize", pageSize);
-        modelAndView.addObject("pageNumber", pageNumber);
-        Long countAll;
+        Mono<Long> countAllMono;
         if ((search != null) && (!search.isEmpty())) {
-            countAll = productsService.countByNameLike(search);
+            countAllMono = productsService.countByNameLike(search);
         } else {
-            countAll = productsService.countAll();
+            countAllMono = productsService.countAll();
         }
-        modelAndView.addObject("lastPageNumber", Math.ceil((double)countAll/pageSize));
-
-        return modelAndView;
+        return productsFlux.collectList().zipWith(countAllMono).flatMap(tuple -> {
+            var productsPage = tuple.getT1();
+            var countAll = tuple.getT2();
+            HashMap<String, Object> params = new HashMap<>();
+            params.put("products", productsPage);
+            params.put("search", search);
+            params.put("sort", sort);
+            params.put("pageNumber", pageNumber);
+            params.put("pageSize", pageSize);
+            params.put("lastPageNumber", Math.ceil((double)countAll/pageSize));
+            return ServerResponse.ok().render("main", params);
+        });
     }
 
     @PostMapping(value = "/changeCartItemQuantity/{id}", params = "action=plus")
     public Mono<ServerResponse> increaseCartItemQuantity(@PathVariable(name = "id") Integer itemId) {
-        return cartService.addCartItem(itemId.longValue()).flatMap(unused -> {
-            return ServerResponse.temporaryRedirect(URI.create("/products/")).build();
-        });
+        return cartService.addCartItem(itemId.longValue())
+                .then(Mono.defer(() -> ServerResponse.temporaryRedirect(URI.create("/products/")).build()));
     }
     @PostMapping(value = "/changeCartItemQuantity/{id}", params = "action=minus")
     public Mono<ServerResponse> decreaseCartItemQuantity(@PathVariable(name = "id") Integer itemId) {
-        return cartService.removeCartItem(itemId.longValue()).flatMap(unused -> {
-            return ServerResponse.temporaryRedirect(URI.create("/products")).build();
-        });
+        return cartService.removeCartItem(itemId.longValue())
+                .then(Mono.defer(() -> ServerResponse.temporaryRedirect(URI.create("/products")).build()));
     }
     @PostMapping(value = "/{id1}/changeCartItemQuantity/{id}", params = "action=plus")
     public Mono<ServerResponse> increaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
-        return cartService.addCartItem(itemId.longValue()).flatMap(unused -> {
-            return ServerResponse.temporaryRedirect(URI.create("/products/" + itemId.longValue())).build();
-        });
+        return cartService.addCartItem(itemId.longValue())
+                .then(Mono.defer(() -> ServerResponse.temporaryRedirect(URI.create("/products/" + itemId.longValue())).build()));
     }
     @PostMapping(value = "/{id1}/changeCartItemQuantity/{id}", params = "action=minus")
     public Mono<ServerResponse> decreaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
-        return cartService.removeCartItem(itemId.longValue()).flatMap(nullPointer -> {
-            return ServerResponse.temporaryRedirect(URI.create("/products/"+itemId)).build();
-        });
+        return cartService.removeCartItem(itemId.longValue())
+                .then(Mono.defer(() -> ServerResponse.temporaryRedirect(URI.create("/products/"+itemId)).build()));
     }
     @PostMapping(value = "/cart/changeCartItemQuantity/{id}", params = "action=plus")
     public Mono<ServerResponse> increaseCartItemQuantityAndShowCart(@PathVariable(name = "id") Integer itemId) {
-        return cartService.addCartItem(itemId.longValue()).flatMap(nullPointer -> {
-            return ServerResponse.temporaryRedirect(URI.create("/cart")).build();
-        });
+        return cartService.addCartItem(itemId.longValue())
+                .then(Mono.defer(() -> ServerResponse.temporaryRedirect(URI.create("/cart")).build()));
     }
     @PostMapping(value = "/cart/changeCartItemQuantity/{id}", params = "action=minus")
     public Mono<ServerResponse> decreaseCartItemQuantityAndShowCart(@PathVariable(name = "id") Integer itemId) {
-        return cartService.removeCartItem(itemId.longValue()).flatMap(nullPointer -> {
-            return ServerResponse.temporaryRedirect(URI.create("/cart")).build();
-        });
+        return cartService.removeCartItem(itemId.longValue())
+                .then(Mono.defer(() -> ServerResponse.temporaryRedirect(URI.create("/cart")).build()));
     }
 
 
