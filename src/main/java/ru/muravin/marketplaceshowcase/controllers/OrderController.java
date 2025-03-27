@@ -39,7 +39,7 @@ public class OrderController {
     @GetMapping("/{id}")
     public Mono<ServerResponse> getOrder(@PathVariable Long id,
                            @RequestParam(name = "justBought",defaultValue = "false") boolean justBought) {
-        return orderService.findOrderById(id).map(OrderToUIDto::new).flatMap(dto -> {
+        return orderService.findOrderToUIDtoById(id).flatMap(dto -> {
             return ServerResponse.ok().render("order", Map.of("order", dto, "justBought", justBought));
         });
     }

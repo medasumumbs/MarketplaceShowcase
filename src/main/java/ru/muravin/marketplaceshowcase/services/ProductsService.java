@@ -24,8 +24,8 @@ public class ProductsService {
         this.productsReactiveRepository = productsReactiveRepository;
         this.cartService = cartService;
     }
-    public Flux<ProductToUIDto> findAll(PageRequest pageRequest) {
-        var products = productsReactiveRepository.findAll(pageRequest).map(ProductToUIDto::new).collectList();
+    public Flux<ProductToUIDto> findAll(PageRequest pageRequest, int pageSize, int offset) {
+        var products = productsReactiveRepository.findAll(pageRequest, pageSize, offset).map(ProductToUIDto::new).collectList();
         var cartItems = cartService.getCartItemsFlux(cartService.getFirstCartIdMono()).collectList();
         return Mono.zip(products, cartItems).flatMapMany(tuple -> {
             enrichDtoListWithCartQuantities(tuple.getT1(), tuple.getT2());
@@ -40,7 +40,8 @@ public class ProductsService {
     }
 
     public Flux<ProductToUIDto> findByNameLike(String search, PageRequest pageRequest) {
-        var products = productsReactiveRepository.findByNameLike('%' + search + '%', pageRequest)
+        var products = productsReactiveRepository
+                .findByNameLike('%' + search + '%', pageRequest.getPageNumber(), pageRequest.getPageSize())
                 .map(ProductToUIDto::new).collectList();
         var cartItems = cartService.getCartItemsFlux(cartService.getFirstCartIdMono()).collectList();
         return Mono.zip(products, cartItems).flatMapMany(tuple -> {

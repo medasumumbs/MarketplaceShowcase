@@ -1,9 +1,11 @@
 package ru.muravin.marketplaceshowcase.services;
 
+import org.aspectj.weaver.ast.Or;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import ru.muravin.marketplaceshowcase.dto.OrderItemToUIDto;
 import ru.muravin.marketplaceshowcase.dto.OrderToUIDto;
 import ru.muravin.marketplaceshowcase.exceptions.NoOrderException;
 import ru.muravin.marketplaceshowcase.exceptions.NoUserException;
@@ -55,8 +57,23 @@ public class OrderService {
         return orderReactiveRepository.findById(id)
                 .switchIfEmpty(Mono.error(new NoOrderException("Order not found")));
     }
+    public Mono<OrderToUIDto> findOrderToUIDtoById(Long id) {
+        Mono<List<OrderItem>> orderItemsMono = orderItemsReactiveRepository.findAllByOrder_Id(id).collectList();
+        Mono<Order> orderMono = findOrderById(id);
+        return Mono.zip(orderMono, orderItemsMono).flatMap(tuple -> {
+            var order = tuple.getT1();
+            var orderItems = tuple.getT2();
+            var orderToUIDto = new OrderToUIDto(order, orderItems);
+            orderToUIDto.getOrderItems().forEach(orderItem -> {orderItem.setOrder(orderToUIDto);});
+            return Mono.just(orderToUIDto);
+        });
+    }
 
     public Flux<OrderToUIDto> findAll() {
-        return orderReactiveRepository.findAll().map(OrderToUIDto::new);
+        return orderReactiveRepository.findAll().flatMap(order -> {
+            return orderItemsReactiveRepository
+                    .findAllByOrder_Id(order.getId()).collectList()
+                    .map((orderItems -> new OrderToUIDto(order, orderItems)));
+        });
     }
 }

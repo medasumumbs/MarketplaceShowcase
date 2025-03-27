@@ -53,7 +53,7 @@ public class ProductServiceTest {
         );;
         Page<Product> productPage = new PageImpl<>(products.subList(1,3), pageRequest, products.size());
         //when(repository.findAll(pageRequest)).thenReturn(productPage);
-        var realResult = productsService.findAll(pageRequest);
+        var realResult = productsService.findAll(pageRequest, pageRequest.getPageNumber(), pageRequest.getPageSize());
         assertNotNull(realResult);
         var firstDto = new ProductToUIDto(products.get(1));
         firstDto.setQuantityInCart(0);

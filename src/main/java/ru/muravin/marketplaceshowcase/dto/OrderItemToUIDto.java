@@ -2,9 +2,6 @@ package ru.muravin.marketplaceshowcase.dto;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.beans.BeanUtils;
-import ru.muravin.marketplaceshowcase.models.Cart;
-import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.OrderItem;
 
 import java.util.Objects;

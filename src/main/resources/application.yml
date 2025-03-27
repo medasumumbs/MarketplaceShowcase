@@ -12,10 +12,6 @@ spring:
             max-idle-time: 30s                          # Время бездействия соединения перед закрытием
             max-life-time: 10m                          # Максимальное время жизни соединения
             validation-query: SELECT 1                  # SQL-запрос для проверки работоспособности соединения
-    datasource:
-        url: jdbc:postgresql://localhost:5432/mydatabase?currentSchema=marketplace
-        username: myuser
-        password: secret
     sql:
         init:
             mode: always

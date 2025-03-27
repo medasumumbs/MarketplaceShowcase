@@ -8,6 +8,8 @@ import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.Order;
 import ru.muravin.marketplaceshowcase.models.OrderItem;
 
+import java.util.List;
+
 @Repository
 public interface OrderItemsReactiveRepository extends R2dbcRepository<OrderItem, Integer> {
     Flux<OrderItem> findAllByCart_Id(Long cart_id);
@@ -15,4 +17,6 @@ public interface OrderItemsReactiveRepository extends R2dbcRepository<OrderItem,
     Mono<OrderItem> findByProduct_IdAndCart_Id(Long productId, Long cartId);
 
     Mono<Void> deleteByCart_Id(Long cartId);
+
+    Flux<OrderItem> findAllByOrder_Id(Long orderId);
 }
