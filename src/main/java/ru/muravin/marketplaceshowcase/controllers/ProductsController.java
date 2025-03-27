@@ -1,12 +1,10 @@
 package ru.muravin.marketplaceshowcase.controllers;
 
-import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import com.opencsv.bean.ColumnPositionMappingStrategy;
 import com.opencsv.bean.CsvToBean;
-import com.opencsv.bean.CsvToBeanBuilder;
 import com.opencsv.exceptions.CsvValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -22,18 +20,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 
-import ru.muravin.marketplaceshowcase.exceptions.UnknownProductException;
 import ru.muravin.marketplaceshowcase.services.CartService;
 import ru.muravin.marketplaceshowcase.services.ProductsService;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/products")
@@ -88,52 +89,57 @@ public class ProductsController {
     }
 
     @PostMapping(value = "/changeCartItemQuantity/{id}", params = "action=plus")
-    public String increaseCartItemQuantity(@PathVariable(name = "id") Integer itemId) {
-        cartService.addCartItem(itemId.longValue());
-        return "redirect:/products";
+    public Mono<ServerResponse> increaseCartItemQuantity(@PathVariable(name = "id") Integer itemId) {
+        return cartService.addCartItem(itemId.longValue()).flatMap(unused -> {
+            return ServerResponse.temporaryRedirect(URI.create("/products/")).build();
+        });
     }
     @PostMapping(value = "/changeCartItemQuantity/{id}", params = "action=minus")
-    public String decreaseCartItemQuantity(@PathVariable(name = "id") Integer itemId) {
-        cartService.removeCartItem(itemId.longValue());
-        return "redirect:/products";
+    public Mono<ServerResponse> decreaseCartItemQuantity(@PathVariable(name = "id") Integer itemId) {
+        return cartService.removeCartItem(itemId.longValue()).flatMap(unused -> {
+            return ServerResponse.temporaryRedirect(URI.create("/products")).build();
+        });
     }
     @PostMapping(value = "/{id1}/changeCartItemQuantity/{id}", params = "action=plus")
-    public String increaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
-        cartService.addCartItem(itemId.longValue());
-        return "redirect:/products/"+itemId;
+    public Mono<ServerResponse> increaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
+        return cartService.addCartItem(itemId.longValue()).flatMap(unused -> {
+            return ServerResponse.temporaryRedirect(URI.create("/products/" + itemId.longValue())).build();
+        });
     }
     @PostMapping(value = "/{id1}/changeCartItemQuantity/{id}", params = "action=minus")
-    public String decreaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
-        cartService.removeCartItem(itemId.longValue());
-        return "redirect:/products/"+itemId;
+    public Mono<ServerResponse> decreaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
+        return cartService.removeCartItem(itemId.longValue()).flatMap(nullPointer -> {
+            return ServerResponse.temporaryRedirect(URI.create("/products/"+itemId)).build();
+        });
     }
     @PostMapping(value = "/cart/changeCartItemQuantity/{id}", params = "action=plus")
-    public String increaseCartItemQuantityAndShowCart(@PathVariable(name = "id") Integer itemId) {
-        cartService.addCartItem(itemId.longValue());
-        return "redirect:/cart";
+    public Mono<ServerResponse> increaseCartItemQuantityAndShowCart(@PathVariable(name = "id") Integer itemId) {
+        return cartService.addCartItem(itemId.longValue()).flatMap(nullPointer -> {
+            return ServerResponse.temporaryRedirect(URI.create("/cart")).build();
+        });
     }
     @PostMapping(value = "/cart/changeCartItemQuantity/{id}", params = "action=minus")
-    public String decreaseCartItemQuantityAndShowCart(@PathVariable(name = "id") Integer itemId) {
-        cartService.removeCartItem(itemId.longValue());
-        return "redirect:/cart";
+    public Mono<ServerResponse> decreaseCartItemQuantityAndShowCart(@PathVariable(name = "id") Integer itemId) {
+        return cartService.removeCartItem(itemId.longValue()).flatMap(nullPointer -> {
+            return ServerResponse.temporaryRedirect(URI.create("/cart")).build();
+        });
     }
 
 
     @GetMapping("/uploadCSV")
-    public String uploadCSV() {
-        return "uploadCSV";
+    public Mono<ServerResponse> uploadCSV() {
+        return ServerResponse.ok().render("uploadCSV");
     }
 
     @PostMapping(
             value = "/uploadCSV",
             consumes = "multipart/form-data" // Обязательно включаем медиа-тип
     )
-    public String uploadIcon(
+    public Mono<ServerResponse> uploadIcon(
             @RequestPart("csv") MultipartFile csvFile, // Файл в виде массива байт
             Model model) throws IOException, CsvValidationException {
         if (csvFile.isEmpty()) {
-            model.addAttribute("message", "Файл пуст, импорт не выполнен");
-            return "uploadCSVStatus";
+            return ServerResponse.badRequest().render("uploadCSVStatus", Map.of("message","Файл пуст, импорт не выполнен"));
         }
         try (CSVReader csvReader = new CSVReaderBuilder(
                 new BufferedReader(
@@ -149,41 +155,41 @@ public class ProductsController {
 
             String[] header = csvReader.readNext();
             if (!Arrays.equals(header, beanStrategy.getColumnMapping())) {
-                model.addAttribute("message", "Ошибка импорта - некорректный заголовок");
-                return "uploadCSVStatus";
+                return ServerResponse.badRequest()
+                        .render("uploadCSVStatus", Map.of("message","Ошибка импорта - некорректный заголовок"));
+
             }
 
             CsvToBean<ProductToUIDto> csvToBean = new CsvToBean<ProductToUIDto>();
             csvToBean.setMappingStrategy(beanStrategy);
             csvToBean.setCsvReader(csvReader);
             List<ProductToUIDto> products = csvToBean.parse();
-            products.forEach(productsService::save);
-
-            // save users list on model
-            model.addAttribute(
-                    "message", "Импорт завершен успешно, продуктов импортировано: " + products.size()
-            );
+            return Flux.fromIterable(products).map(productsService::save).collectList().flatMap(list -> {
+                return ServerResponse.ok()
+                    .render(
+                            "uploadCSVStatus",
+                            Map.of("message", "Импорт завершен успешно, продуктов импортировано: " + list.size())
+                    );
+            });
         }
-        return "uploadCSVStatus";
     }
 
     @GetMapping("/{id}")
-    public String itemPage(Model model, @PathVariable(name = "id") Long id) {
-        model.addAttribute("product", productsService.findById(id));
-        return "item";
+    public Mono<ServerResponse> itemPage(Model model, @PathVariable(name = "id") Long id) {
+        return productsService.findById(id)
+                .flatMap(productToUIDto -> ServerResponse.ok().render("item", Map.of("product",productToUIDto)));
     }
 
     @ExceptionHandler({IOException.class, CsvValidationException.class})
-    public String CSVErrorPage(Model model, Exception exception) {
+    public Mono<ServerResponse> CSVErrorPage(Model model, Exception exception) {
         exception.printStackTrace();
-        model.addAttribute("message", "Ошибка импорта - проверьте файл на корректность: " + exception.getCause());
-        return "errorPage";
+        return ServerResponse.status(500)
+                .render("errorPage", "Ошибка импорта - проверьте файл на корректность: " + exception.getCause());
     }
     @ExceptionHandler(Exception.class)
-    public String unknownErrorPage(Model model, Exception exception) {
+    public Mono<ServerResponse> unknownErrorPage(Model model, Exception exception) {
         exception.printStackTrace();
-        model.addAttribute("message", "Неизвестная ошибка: " + exception.getMessage());
-        return "errorPage";
+        return ServerResponse.status(500).render("errorPage", Map.of("message","Неизвестная ошибка: " + exception.getMessage()));
     }
 
 }
