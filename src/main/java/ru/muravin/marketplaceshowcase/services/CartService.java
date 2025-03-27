@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
+import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownCartException;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownProductException;
 import ru.muravin.marketplaceshowcase.models.Cart;
@@ -38,16 +39,16 @@ public class CartService {
             tuple -> {
                 var product = tuple.getT1();
                 var cartId = tuple.getT2();
-                return cartItemsReactiveRepository.findByProduct_IdAndCart_Id(product.getId(), cartId);
+                return cartItemsReactiveRepository.findByProduct_IdAndCart_Id(product.getId(), cartId).flatMap(cartItem -> {
+                    if (cartItem != null) {
+                        cartItem.setQuantity(cartItem.getQuantity() + 1);
+                    } else {
+                        cartItem = new CartItem(productId,cartId);
+                    }
+                    return cartItemsReactiveRepository.save(cartItem);
+                });
             }
-        ).flatMap(cartItem -> {
-            if (cartItem != null) {
-                cartItem.setQuantity(cartItem.getQuantity() + 1);
-            } else {
-                cartItem = new CartItem(cartItem.getProduct(),cartItem.getCart());
-            }
-            return cartItemsReactiveRepository.save(cartItem);
-        }).then();
+        ).then();
     }
 
     public Mono<Void> removeCartItem(Long productId) {
@@ -85,17 +86,23 @@ public class CartService {
         return getCartItemsFlux(Mono.just(cart.getId()));
     }
     public Flux<CartItem> getCartItemsFlux(Mono<Long> cartId) {
-        return cartId.flatMapMany(cartItemsReactiveRepository::findAllByCart_Id);
+        return cartId.flatMapMany(cartItemsReactiveRepository::findAllByCart_Id).map(CartItemToUIDto::toCartItem);
     }
     public Mono<CartItem> getCartItemFlux(Long cartId, Long productId) {
         return cartItemsReactiveRepository.findByProduct_IdAndCart_Id(cartId, productId);
     }
     public Flux<CartItemToUIDto> getCartItemsDtoFlux(Mono<Long> cartId) {
-        return getCartItemsFlux(cartId).map(CartItemToUIDto::new);
+        return getCartItemsFlux(cartId).flatMap(cartItem -> {
+            return productsReactiveRepository.findById(cartItem.getProductId()).zipWith(Mono.just(cartItem));
+        }).map(tuple-> {
+            var product = tuple.getT1();
+            var cartItem = tuple.getT2();
+            return new CartItemToUIDto(cartItem, new ProductToUIDto(product));
+        });
     }
     public Mono<Double> getCartSumFlux(Mono<Long> cartId) {
         Double sum = (double) 0;
-        return getCartItemsFlux(cartId).reduce(
+        return getCartItemsDtoFlux(cartId).reduce(
                 sum,
                 (accumulator, item) -> accumulator + item.getQuantity()*item.getProduct().getPrice()
         );

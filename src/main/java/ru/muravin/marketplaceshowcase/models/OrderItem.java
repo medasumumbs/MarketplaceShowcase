@@ -1,48 +1,47 @@
 package ru.muravin.marketplaceshowcase.models;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
+
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.SequenceGenerator;
-import jakarta.persistence.Table;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
+import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
 
 @Data
-@Entity
-@Table(name = "order_products")
+@Table("order_products")
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderItem {
     @Id()
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "cart_seq")
-    @SequenceGenerator(name = "cart_seq", sequenceName = "cart_sequence", allocationSize = 1)
     private Long Id;
 
-    @ManyToOne
-    @JoinColumn(name = "order_id", referencedColumnName = "id")
-    private Order order;
+    @Column("order_id")
+    private Long orderId;
 
-    @ManyToOne
-    @JoinColumn(name = "product_id", referencedColumnName = "id")
-    private Product product;
+    @Column("product_id")
+    private Long productId;
 
-    @Column(name = "product_count")
+    @Column("product_count")
     private Integer quantity;
 
-    @Column(name = "product_price")
+    @Column("product_price")
     private Double price;
 
-    public OrderItem(CartItem cartItem, Order order) {
-        this.order = order;
-        this.product = cartItem.getProduct();
+    public OrderItem(CartItem cartItem, Order order, Product product) {
+        this.orderId = order.getId();
+        this.productId = cartItem.getProductId();
         this.quantity = cartItem.getQuantity();
-        this.price = cartItem.getProduct().getPrice();
+        this.price = product.getPrice();
 
+    }
+
+    public OrderItem(CartItemToUIDto item, Order order) {
+        this.orderId = order.getId();
+        this.quantity = item.getQuantity();
+        this.price = item.getProduct().getPrice();
+        this.productId = item.getProduct().getId();
     }
 }

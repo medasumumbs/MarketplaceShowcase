@@ -20,11 +20,12 @@ public class OrderToUIDto {
 
     private LocalDateTime orderDate;
 
-    public OrderToUIDto(Order order, List<OrderItem> orderItems) {
+    public OrderToUIDto(Order order, List<OrderItemToUIDto> orderItems) {
         this.id = order.getId();
         this.orderDate = order.getOrderDate();
-        for (OrderItem orderItem : orderItems) {
-            this.orderItems.add(new OrderItemToUIDto(orderItem,this));
+        for (OrderItemToUIDto orderItem : orderItems) {
+            orderItem.setOrder(this);
+            this.orderItems.add(orderItem);
             sum += orderItem.getPrice() * orderItem.getQuantity();
         }
     }

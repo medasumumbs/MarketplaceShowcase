@@ -19,13 +19,11 @@ public class OrderItemToUIDto {
 
     private Double price;
 
-    public OrderItemToUIDto(OrderItem orderItem, OrderToUIDto order) {
-        this.Id = orderItem.getId();
-        this.order = order;
-        this.quantity = orderItem.getQuantity();
-        this.price = orderItem.getPrice();
-        this.product = new ProductToUIDto(orderItem.getProduct());
-    }
+    private String name;
+
+    private String description;
+
+    private String base64Image;
 
     @Override
     public boolean equals(Object o) {

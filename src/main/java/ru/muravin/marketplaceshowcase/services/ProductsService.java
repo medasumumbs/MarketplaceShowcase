@@ -74,8 +74,8 @@ public class ProductsService {
             productToUIDto.setQuantityInCart(0);
         });
         cartItems.forEach(cartItem -> {
-            if (productsMap.containsKey(cartItem.getProduct().getId())) {
-                ((ProductToUIDto)productsMap.get(cartItem.getProduct().getId())).setQuantityInCart(cartItem.getQuantity());
+            if (productsMap.containsKey(cartItem.getProductId())) {
+                ((ProductToUIDto)productsMap.get(cartItem.getProductId())).setQuantityInCart(cartItem.getQuantity());
             }
         });
     }

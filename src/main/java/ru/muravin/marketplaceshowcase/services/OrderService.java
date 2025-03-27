@@ -46,9 +46,8 @@ public class OrderService {
             order.setOrderDate(LocalDateTime.now());
             return orderReactiveRepository.save(order);
         }).flatMap(order -> {
-            return cartItemsReactiveRepository.findAllByCart_Id(cart.getId()).doOnEach((item)->{
-                OrderItem orderItem = new OrderItem(item.get(), order);
-                orderItemsReactiveRepository.save(orderItem);
+            return cartItemsReactiveRepository.findAllByCart_Id(cart.getId()).map((item)->{
+                return orderItemsReactiveRepository.save(new OrderItem(item,order));
             }).then(cartService.deleteAllItemsByCart(cart)).then(Mono.just(order));
         });
     }
@@ -58,7 +57,7 @@ public class OrderService {
                 .switchIfEmpty(Mono.error(new NoOrderException("Order not found")));
     }
     public Mono<OrderToUIDto> findOrderToUIDtoById(Long id) {
-        Mono<List<OrderItem>> orderItemsMono = orderItemsReactiveRepository.findAllByOrder_Id(id).collectList();
+        Mono<List<OrderItemToUIDto>> orderItemsMono = orderItemsReactiveRepository.findAllByOrder_Id(id).collectList();
         Mono<Order> orderMono = findOrderById(id);
         return Mono.zip(orderMono, orderItemsMono).flatMap(tuple -> {
             var order = tuple.getT1();
