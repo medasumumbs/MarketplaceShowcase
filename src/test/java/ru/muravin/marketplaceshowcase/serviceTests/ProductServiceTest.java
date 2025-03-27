@@ -14,16 +14,13 @@ import ru.muravin.marketplaceshowcase.TestcontainersConfiguration;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownProductException;
 import ru.muravin.marketplaceshowcase.models.Product;
-import ru.muravin.marketplaceshowcase.repositories.ProductsRepository;
 import ru.muravin.marketplaceshowcase.services.CartService;
 import ru.muravin.marketplaceshowcase.services.ProductsService;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(classes = MarketplaceShowcaseApplication.class)
 public class ProductServiceTest {

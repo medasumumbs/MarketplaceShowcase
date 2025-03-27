@@ -4,21 +4,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.bean.override.mockito.MockReset;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import ru.muravin.marketplaceshowcase.MarketplaceShowcaseApplication;
 import ru.muravin.marketplaceshowcase.TestcontainersConfiguration;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownCartException;
 import ru.muravin.marketplaceshowcase.models.Cart;
 import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.Product;
-import ru.muravin.marketplaceshowcase.repositories.ProductsRepository;
 import ru.muravin.marketplaceshowcase.services.CartService;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(classes = MarketplaceShowcaseApplication.class)
 @Disabled

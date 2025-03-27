@@ -6,8 +6,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.services.CartService;
+
+import java.net.URI;
+import java.util.HashMap;
 
 @Controller
 @RequestMapping("/cart")
@@ -19,17 +23,19 @@ public class CartController {
     }
 
     @PostMapping("/add")
-    public Mono<String> addItemToCart(@RequestParam Integer productId) {
-        return Mono.just("redirect:/products");
+    public Mono<ServerResponse> addItemToCart(@RequestParam Integer productId) {
+        return ServerResponse.temporaryRedirect(URI.create("redirect:/products")).build();
     }
     @GetMapping
-    public Mono<String> showCart(Model model) {
+    public Mono<ServerResponse> showCart(Model model) {
         var firstCartIdMono = cartService.getFirstCartIdMono();
         var sumOfOrder = cartService.getCartSumFlux(firstCartIdMono);
         var cartItems = cartService.getCartItemsFlux(firstCartIdMono);
-        return Mono.zip(sumOfOrder, cartItems.collectList()).doOnNext(tuple -> {
-            model.addAttribute("cartItems", tuple.getT2());
-            model.addAttribute("sumOfOrder", tuple.getT1());
-        }).map(cart->"cart").defaultIfEmpty("errorPage");
+        return Mono.zip(sumOfOrder, cartItems.collectList()).flatMap(tuple -> {
+            var hashMap = new HashMap<String, Object>();
+            hashMap.put("cartItems", tuple.getT1());
+            hashMap.put("cartSum", tuple.getT2());
+            return ServerResponse.ok().render("cart", hashMap);
+        });
     }
 }

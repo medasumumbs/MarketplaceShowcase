@@ -1,6 +1,5 @@
 package ru.muravin.marketplaceshowcase.controllers;
 
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -8,10 +7,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.OrderToUIDto;
-import ru.muravin.marketplaceshowcase.models.Order;
 import ru.muravin.marketplaceshowcase.services.CartService;
 import ru.muravin.marketplaceshowcase.services.OrderService;
+
+import java.net.URI;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/orders")
@@ -25,21 +28,25 @@ public class OrderController {
     }
 
     @PostMapping
-    public String addOrder() {
-        var cart = cartService.getCartById(cartService.getFirstCartId());
-        Order order = orderService.addOrder(cart);
-        return "redirect:/orders/" + order.getId() + "?justBought=true";
+    public Mono<ServerResponse> addOrder() {
+        return cartService.getFirstCartIdMono()
+                .flatMap(cartService::getCartById)
+                .flatMap(orderService::addOrder)
+                .flatMap((order) -> {
+                    return ServerResponse.temporaryRedirect(URI.create("redirect:/orders/" + order.getId() + "?justBought=true")).build();
+                });
     }
     @GetMapping("/{id}")
-    public String getOrder(@PathVariable Long id, Model model,
+    public Mono<ServerResponse> getOrder(@PathVariable Long id,
                            @RequestParam(name = "justBought",defaultValue = "false") boolean justBought) {
-        model.addAttribute("justBought", justBought);
-        model.addAttribute("order",new OrderToUIDto(orderService.findOrderById(id)));
-        return "order";
+        return orderService.findOrderById(id).map(OrderToUIDto::new).flatMap(dto -> {
+            return ServerResponse.ok().render("order", Map.of("order", dto, "justBought", justBought));
+        });
     }
     @GetMapping
-    public String getOrders(Model model) {
-        model.addAttribute("orders", orderService.findAll());
-        return "orders";
+    public Mono<ServerResponse> getOrders() {
+        return orderService.findAll().collectList().flatMap(orders -> {
+            return ServerResponse.ok().render("orders", Map.of("orders", orders));
+        });
     }
 }
