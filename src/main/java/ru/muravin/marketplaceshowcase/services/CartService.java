@@ -2,14 +2,14 @@ package ru.muravin.marketplaceshowcase.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownCartException;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownProductException;
 import ru.muravin.marketplaceshowcase.models.Cart;
 import ru.muravin.marketplaceshowcase.models.CartItem;
-import ru.muravin.marketplaceshowcase.repositories.CartItemRepository;
-import ru.muravin.marketplaceshowcase.repositories.CartsRepository;
-import ru.muravin.marketplaceshowcase.repositories.ProductsRepository;
+import ru.muravin.marketplaceshowcase.repositories.*;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -17,81 +17,84 @@ import java.util.concurrent.atomic.AtomicReference;
 @Service
 public class CartService {
 
-    private final ProductsRepository productsRepository;
-    private final CartsRepository cartsRepository;
-    private final CartItemRepository cartItemRepository;
+    private final ProductsReactiveRepository productsReactiveRepository;
+    private final CartsReactiveRepository cartsReactiveRepository;
+    private final CartItemsReactiveRepository cartItemsReactiveRepository;
+
 
     @Autowired
-    public CartService(CartItemRepository cartItemRepository, ProductsRepository productsRepository, CartsRepository cartsRepository) {
-        this.cartItemRepository = cartItemRepository;
-        this.productsRepository = productsRepository;
-        this.cartsRepository = cartsRepository;
+    public CartService(CartsReactiveRepository cartsReactiveRepository,
+                       CartItemsReactiveRepository cartItemsReactiveRepository,
+                       ProductsReactiveRepository productsReactiveRepository) {
+        this.cartsReactiveRepository = cartsReactiveRepository;
+        this.cartItemsReactiveRepository = cartItemsReactiveRepository;
+        this.productsReactiveRepository = productsReactiveRepository;
     }
 
-    public void addCartItem(Long productId) {
-        var product = productsRepository.findById(productId).orElseThrow(
-                () -> new UnknownProductException("Product "+productId+" not found")
-        );
-        // Пока в приложении один пользователь - корзину ищем как первую в базе
-        var cart = cartsRepository.findAll().stream().findFirst().orElseThrow(() -> new UnknownCartException("Cart "+1l+" not found"));
-        var cartItemFromRepo = cartItemRepository.findByProductAndCart(product, cart);
-        CartItem cartItem;
-        if (cartItemFromRepo.isPresent()) {
-            cartItem = cartItemFromRepo.get();
-            cartItem.setQuantity(cartItem.getQuantity() + 1);
-        } else {
-            cartItem = new CartItem(product, cart);
-        }
-        cartItemRepository.save(cartItem);
+    public Mono<Void> addCartItem(Long productId) {
+        var productMono = productsReactiveRepository.findById(productId);
+        productMono = productMono.switchIfEmpty(Mono.error(() -> new UnknownProductException("Product "+productId+" not found")));
+        return productMono.zipWith(getFirstCartIdMono()).flatMap(
+            tuple -> {
+                var product = tuple.getT1();
+                var cartId = tuple.getT2();
+                return cartItemsReactiveRepository.findByProduct_IdAndCart_Id(product.getId(), cartId);
+            }
+        ).flatMap(cartItem -> {
+            if (cartItem != null) {
+                cartItem.setQuantity(cartItem.getQuantity() + 1);
+            } else {
+                cartItem = new CartItem(cartItem.getProduct(),cartItem.getCart());
+            }
+            return cartItemsReactiveRepository.save(cartItem);
+        }).then();
     }
 
-    public void removeCartItem(Long productId) {
-        var product = productsRepository.findById(productId).orElseThrow(
-                () -> new UnknownProductException("Product "+productId+" not found")
-        );
-        // Пока в приложении один пользователь - корзину ищем как первую в базе
-        var cart = cartsRepository.findAll().stream().findFirst().orElseThrow(() -> new UnknownCartException("Cart not found"));
-        var cartItemFromRepo = cartItemRepository.findByProductAndCart(product, cart);
-        CartItem cartItem;
-        if (cartItemFromRepo.isPresent()) {
-            cartItem = cartItemFromRepo.get();
+    public Mono<Void> removeCartItem(Long productId) {
+        var productMono = productsReactiveRepository.findById(productId);
+        productMono = productMono.switchIfEmpty(Mono.error(() -> new UnknownProductException("Product "+productId+" not found")));
+        return productMono.zipWith(getFirstCartIdMono()).flatMap(
+                tuple -> {
+                    var product = tuple.getT1();
+                    var cartId = tuple.getT2();
+                    return cartItemsReactiveRepository.findByProduct_IdAndCart_Id(product.getId(), cartId);
+                }
+        ).flatMap(cartItem -> {
+            if (cartItem == null) return Mono.fromCallable(()->null);
             cartItem.setQuantity(cartItem.getQuantity() - 1);
             if (cartItem.getQuantity() == 0) {
-                cartItemRepository.delete(cartItem);
+                return cartItemsReactiveRepository.delete(cartItem);
             } else {
-                cartItemRepository.save(cartItem);
+                return cartItemsReactiveRepository.save(cartItem);
             }
-        }
+        }).then();
     }
 
-    public Cart getCartById(long id) {
-        return cartsRepository.findById(id).orElseThrow(
-                () -> new UnknownCartException("Cart "+id+" not found")
+    public Mono<Cart> getCartById(long id) {
+        return cartsReactiveRepository.findById(id);
+    }
+
+    public Mono<Void> deleteAllItemsByCart(Cart cart) {
+        return cartItemsReactiveRepository.deleteByCart_Id(cart.getId());
+    }
+
+    public Mono<Long> getFirstCartIdMono() {
+        return cartsReactiveRepository.findAll().elementAt(0).map(Cart::getId);
+    }
+    public Flux<CartItem> getCartItemsFlux(Cart cart) {
+        return getCartItemsFlux(Mono.just(cart.getId()));
+    }
+    public Flux<CartItem> getCartItemsFlux(Mono<Long> cartId) {
+        return cartId.flatMapMany(cartItemsReactiveRepository::findAllByCart_Id);
+    }
+    public Flux<CartItemToUIDto> getCartItemsDtoFlux(Mono<Long> cartId) {
+        return getCartItemsFlux(cartId).map(CartItemToUIDto::new);
+    }
+    public Mono<Double> getCartSumFlux(Mono<Long> cartId) {
+        Double sum = (double) 0;
+        return getCartItemsFlux(cartId).reduce(
+                sum,
+                (accumulator, item) -> accumulator + item.getQuantity()*item.getProduct().getPrice()
         );
-    }
-
-    public List<CartItem> getCartItems(Cart cart) {
-        return cartItemRepository.findAllByCart(cart);
-    }
-    public List<CartItem> getCartItems(Long cartId) {
-        return getCartItems(getCartById(cartId));
-    }
-    public List<CartItemToUIDto> getCartItemDtoList(Long cartId) {
-        return getCartItems(cartId).stream().map(CartItemToUIDto::new).toList();
-    }
-
-    public Double getCartSum(long cartId) {
-        AtomicReference<Double> sum = new AtomicReference<>(Double.valueOf(0));
-        getCartItems(cartId)
-                .forEach((item) -> sum.updateAndGet(v -> v + (item.getQuantity() * item.getProduct().getPrice())));
-        return sum.get();
-    }
-
-    public void deleteAllItemsByCart(Cart cart) {
-        cartItemRepository.deleteByCart(cart);
-    }
-
-    public Long getFirstCartId() {
-        return cartsRepository.findAll().stream().findFirst().orElseThrow(() -> new UnknownCartException("Cart not found")).getId();
     }
 }
