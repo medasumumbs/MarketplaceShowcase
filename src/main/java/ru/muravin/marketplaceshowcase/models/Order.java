@@ -31,12 +31,8 @@ public class Order {
     @SequenceGenerator(name = "order_seq", sequenceName = "order_sequence", allocationSize = 1)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
-    private User user;
-
-    @OneToMany(mappedBy = "order")
-    private List<OrderItem> orderItems;
+    @Column(name = "user_id")
+    private Long userId;
 
     @Column(nullable = false)
     private LocalDateTime orderDate;

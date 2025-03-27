@@ -2,6 +2,8 @@ package ru.muravin.marketplaceshowcase.services;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.OrderToUIDto;
 import ru.muravin.marketplaceshowcase.exceptions.NoOrderException;
 import ru.muravin.marketplaceshowcase.exceptions.NoUserException;
@@ -9,9 +11,7 @@ import ru.muravin.marketplaceshowcase.models.Cart;
 import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.Order;
 import ru.muravin.marketplaceshowcase.models.OrderItem;
-import ru.muravin.marketplaceshowcase.repositories.OrderItemRepository;
-import ru.muravin.marketplaceshowcase.repositories.OrderRepository;
-import ru.muravin.marketplaceshowcase.repositories.UserRepository;
+import ru.muravin.marketplaceshowcase.repositories.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -22,40 +22,41 @@ import java.util.stream.Collectors;
 @Service
 public class OrderService {
 
-    private final UserRepository userRepository;
-    private final OrderRepository orderRepository;
+    private final OrderReactiveRepository orderReactiveRepository;
+    private final UserReactiveRepository userReactiveRepository;
     private final CartService cartService;
-    private final OrderItemRepository orderItemRepository;
+    private final OrderItemsReactiveRepository orderItemsReactiveRepository;
+    private final CartItemsReactiveRepository cartItemsReactiveRepository;
 
-    public OrderService(UserRepository userRepository, OrderRepository orderRepository, CartService cartService, OrderItemRepository orderItemRepository) {
-        this.userRepository = userRepository;
-        this.orderRepository = orderRepository;
+    public OrderService(OrderReactiveRepository orderReactiveRepository, UserReactiveRepository userReactiveRepository, CartService cartService, OrderItemsReactiveRepository orderItemsReactiveRepository, CartItemsReactiveRepository cartItemsReactiveRepository) {
+        this.orderReactiveRepository = orderReactiveRepository;
+        this.userReactiveRepository = userReactiveRepository;
         this.cartService = cartService;
-        this.orderItemRepository = orderItemRepository;
+        this.orderItemsReactiveRepository = orderItemsReactiveRepository;
+        this.cartItemsReactiveRepository = cartItemsReactiveRepository;
     }
 
     @Transactional
-    public Order addOrder(Cart cart) {
-        Order order = new Order();
-        order.setUser(Optional.of(userRepository.findAll().getFirst()).orElseThrow(() -> new NoUserException("User not found")));
-        order.setOrderDate(LocalDateTime.now());
-        order.setOrderItems(new ArrayList<>());
-        orderRepository.save(order);
-        var cartItems = cartService.getCartItems(cart);
-        cartItems.forEach(cartItem -> {
-            OrderItem orderItem = new OrderItem(cartItem, order);
-            orderItemRepository.save(orderItem);
-            order.getOrderItems().add(orderItem);
+    public Mono<Order> addOrder(Cart cart) {
+        return userReactiveRepository.findAll().next().flatMap((user)->{
+            Order order = new Order();
+            order.setUserId(user.getId());
+            order.setOrderDate(LocalDateTime.now());
+            return orderReactiveRepository.save(order);
+        }).flatMap(order -> {
+            return cartItemsReactiveRepository.findAllByCart_Id(cart.getId()).doOnEach((item)->{
+                OrderItem orderItem = new OrderItem(item.get(), order);
+                orderItemsReactiveRepository.save(orderItem);
+            }).then(cartService.deleteAllItemsByCart(cart)).then(Mono.just(order));
         });
-        cartService.deleteAllItemsByCart(cart);
-        return order;
     }
 
-    public Order findOrderById(Long id) {
-        return orderRepository.findById(id).orElseThrow(()->new NoOrderException("Order not found"));
+    public Mono<Order> findOrderById(Long id) {
+        return orderReactiveRepository.findById(id)
+                .switchIfEmpty(Mono.error(new NoOrderException("Order not found")));
     }
 
-    public List<OrderToUIDto> findAll() {
-        return orderRepository.findAll().stream().map(OrderToUIDto::new).collect(Collectors.toList());
+    public Flux<OrderToUIDto> findAll() {
+        return orderReactiveRepository.findAll().map(OrderToUIDto::new);
     }
 }
