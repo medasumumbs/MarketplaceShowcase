@@ -17,5 +17,5 @@ public interface ProductsReactiveRepository extends R2dbcRepository<Product, Lon
     @Query("SELECT * from products where upper(name) like concat('%',upper(:name),'%') limit :pageSize offset :offset")
     Flux<Product> findByNameLike(String name, int pageSize, int offset);
 
-    Mono<Long> countByNameLike(String pattern);
+    Mono<Long> countByNameContainingIgnoreCase(String pattern);
 }

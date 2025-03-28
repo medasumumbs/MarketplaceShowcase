@@ -54,7 +54,7 @@ public class ProductsService {
         });
     }
     public Mono<Long> countByNameLike(String search) {
-        return productsReactiveRepository.countByNameLike('%' + search + '%');
+        return productsReactiveRepository.countByNameContainingIgnoreCase(search);
     }
 
     public Mono<ProductToUIDto> findById(Long id) {

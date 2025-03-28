@@ -81,6 +81,7 @@ public class ProductsController {
             params.put("pageNumber", pageNumber);
             params.put("pageSize", pageSize);
             params.put("lastPageNumber", Math.ceil((double)countAll/pageSize));
+            System.out.println("lastPageNumber=" + params.get("lastPageNumber") + " pageNumber=" + params.get("pageNumber") + " pageSize=" + params.get("pageSize") + "countAll=" + countAll);
             model.addAllAttributes(params);
             return Mono.just(Rendering.view("main").modelAttributes(params).build());
         });
