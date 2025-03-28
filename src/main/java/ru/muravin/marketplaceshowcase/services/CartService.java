@@ -39,7 +39,7 @@ public class CartService {
             tuple -> {
                 var product = tuple.getT1();
                 var cartId = tuple.getT2();
-                return cartItemsReactiveRepository.findByProduct_IdAndCart_Id(product.getId(), cartId).flatMap(cartItem -> {
+                return cartItemsReactiveRepository.findByProductIdAndCartId(product.getId(), cartId).flatMap(cartItem -> {
                     if (cartItem != null) {
                         cartItem.setQuantity(cartItem.getQuantity() + 1);
                     } else {
@@ -58,7 +58,7 @@ public class CartService {
                 tuple -> {
                     var product = tuple.getT1();
                     var cartId = tuple.getT2();
-                    return cartItemsReactiveRepository.findByProduct_IdAndCart_Id(product.getId(), cartId);
+                    return cartItemsReactiveRepository.findByProductIdAndCartId(product.getId(), cartId);
                 }
         ).flatMap(cartItem -> {
             if (cartItem == null) return Mono.fromCallable(()->null);
@@ -76,7 +76,7 @@ public class CartService {
     }
 
     public Mono<Void> deleteAllItemsByCart(Cart cart) {
-        return cartItemsReactiveRepository.deleteByCart_Id(cart.getId());
+        return cartItemsReactiveRepository.deleteByCartId(cart.getId());
     }
 
     public Mono<Long> getFirstCartIdMono() {
@@ -89,7 +89,7 @@ public class CartService {
         return cartId.flatMapMany(cartItemsReactiveRepository::findAllByCart_Id).map(CartItemToUIDto::toCartItem);
     }
     public Mono<CartItem> getCartItemFlux(Long cartId, Long productId) {
-        return cartItemsReactiveRepository.findByProduct_IdAndCart_Id(cartId, productId);
+        return cartItemsReactiveRepository.findByProductIdAndCartId(cartId, productId);
     }
     public Flux<CartItemToUIDto> getCartItemsDtoFlux(Mono<Long> cartId) {
         return getCartItemsFlux(cartId).flatMap(cartItem -> {

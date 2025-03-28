@@ -9,18 +9,14 @@ import com.opencsv.exceptions.CsvValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
@@ -46,12 +42,13 @@ public class ProductsController {
         this.cartService = cartService;
     }
 
-    @GetMapping
+    @GetMapping(produces = MediaType.TEXT_HTML_VALUE + ";charset=UTF-8")
     @Transactional
-    public Mono<ServerResponse> getProducts(@RequestParam(required = false) String search,
-                                    @RequestParam(defaultValue = "id") String sort,
-                                    @RequestParam(defaultValue = "10") Integer pageSize,
-                                    @RequestParam(defaultValue = "1") Integer pageNumber
+    public Mono<Rendering> getProducts(@RequestParam(required = false) String search,
+                                       @RequestParam(defaultValue = "id") String sort,
+                                       @RequestParam(defaultValue = "10") Integer pageSize,
+                                       @RequestParam(defaultValue = "1") Integer pageNumber,
+                                       Model model
     ) {
         //ModelAndView modelAndView = new ModelAndView("main.html");
         String sortingColumn = "id";
@@ -61,7 +58,6 @@ public class ProductsController {
             sortingColumn = "price";
         }
         Sort sortingObject = Sort.by(sortingColumn);
-        List<ProductToUIDto> products;
 
         var pageRequest = PageRequest.of(pageNumber-1, pageSize, sortingObject);
         Flux<ProductToUIDto> productsFlux;
@@ -86,7 +82,8 @@ public class ProductsController {
             params.put("pageNumber", pageNumber);
             params.put("pageSize", pageSize);
             params.put("lastPageNumber", Math.ceil((double)countAll/pageSize));
-            return ServerResponse.ok().render("main", params);
+            model.addAllAttributes(params);
+            return Mono.just(Rendering.view("main").modelAttributes(params).build());
         });
     }
 

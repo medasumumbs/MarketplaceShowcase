@@ -10,10 +10,10 @@ import ru.muravin.marketplaceshowcase.models.CartItem;
 
 @Repository
 public interface CartItemsReactiveRepository extends R2dbcRepository<CartItem, Integer> {
-    @Query("select * from cart_products join products on cart_products.product_id=products.id  where cart = :cart_id")
+    @Query("select * from cart_products join products on cart_products.product_id=products.id  where cart_id = :cart_id")
     Flux<CartItemToUIDto> findAllByCart_Id(Long cart_id);
 
-    Mono<CartItem> findByProduct_IdAndCart_Id(Long productId, Long cartId);
+    Mono<CartItem> findByProductIdAndCartId(Long productId, Long cartId);
 
-    Mono<Void> deleteByCart_Id(Long cartId);
+    Mono<Void> deleteByCartId(Long cartId);
 }

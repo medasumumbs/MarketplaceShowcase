@@ -15,6 +15,8 @@ public class OrderItemToUIDto {
 
     private ProductToUIDto product;
 
+    private Long productId;
+
     private Integer quantity;
 
     private Double price;

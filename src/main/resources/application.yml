@@ -30,6 +30,20 @@ spring:
         parameters:
           app.schema-name: marketplace
         clear-checksums: false
+    thymeleaf:
+        prefix: classpath:/templates/
+        suffix: .html
+        enabled: true
+        cache: false # Отключите кэширование для разработки
+        reactive:
+            max-chunk-size: 1024 # Максимальный размер чанка для реактивного рендеринга
+        encoding: UTF-8
+        servlet:
+            content-type: text/html;charset=UTF-8
+    webflux:
+        multipart:
+            headers-charset: UTF-8
+
 
 logging:
     level:

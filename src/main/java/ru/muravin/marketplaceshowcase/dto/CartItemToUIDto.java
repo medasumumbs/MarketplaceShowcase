@@ -15,6 +15,8 @@ public class CartItemToUIDto {
 
     private Cart cart;
 
+    private Long cartId;
+
     private ProductToUIDto product;
 
     private Integer quantity;
