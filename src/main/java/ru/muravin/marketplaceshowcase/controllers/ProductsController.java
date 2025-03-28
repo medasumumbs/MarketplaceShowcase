@@ -24,9 +24,7 @@ import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 import ru.muravin.marketplaceshowcase.services.CartService;
 import ru.muravin.marketplaceshowcase.services.ProductsService;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.URI;
 import java.util.*;
 
@@ -76,6 +74,7 @@ public class ProductsController {
             var productsPage = tuple.getT1();
             var countAll = tuple.getT2();
             HashMap<String, Object> params = new HashMap<>();
+            System.out.println(productsPage);
             params.put("products", productsPage);
             params.put("search", search);
             params.put("sort", sort);
@@ -120,51 +119,52 @@ public class ProductsController {
 
 
     @GetMapping("/uploadCSV")
-    public Mono<ServerResponse> uploadCSV() {
-        return ServerResponse.ok().render("uploadCSV");
+    public Mono<String> uploadCSV() {
+        return Mono.just("uploadCSV");
     }
 
     @PostMapping(
             value = "/uploadCSV",
             consumes = "multipart/form-data" // Обязательно включаем медиа-тип
     )
-    public Mono<ServerResponse> uploadIcon(
-            @RequestPart("csv") MultipartFile csvFile, // Файл в виде массива байт
+    public Mono<String> uploadIcon(
+            @RequestPart("csv")  Mono<byte[]> file, // Файл в виде массива байт
             Model model) throws IOException, CsvValidationException {
-        if (csvFile.isEmpty()) {
-            return ServerResponse.badRequest().render("uploadCSVStatus", Map.of("message","Файл пуст, импорт не выполнен"));
-        }
-        try (CSVReader csvReader = new CSVReaderBuilder(
-                new BufferedReader(
-                    new InputStreamReader(csvFile.getInputStream())
-                )
-            ).withCSVParser(
-                new CSVParserBuilder().withSeparator(',').build()
-            ).build()) {
-
-            ColumnPositionMappingStrategy<ProductToUIDto> beanStrategy = new ColumnPositionMappingStrategy<ProductToUIDto>();
-            beanStrategy.setType(ProductToUIDto.class);
-            beanStrategy.setColumnMapping(new String[] {"name","description","price","imageBase64"});
-
-            String[] header = csvReader.readNext();
-            if (!Arrays.equals(header, beanStrategy.getColumnMapping())) {
-                return ServerResponse.badRequest()
-                        .render("uploadCSVStatus", Map.of("message","Ошибка импорта - некорректный заголовок"));
-
+        return file.flatMap((csvFile) -> {
+            if (csvFile.length==0) {
+                model.addAttribute("message","Файл пуст, импорт не выполнен");
+                return Mono.just("uploadCSVStatus");
             }
+            try (CSVReader csvReader = new CSVReaderBuilder(
+                    new BufferedReader(
+                        new InputStreamReader(new ByteArrayInputStream(csvFile))
+                    )
+                ).withCSVParser(
+                    new CSVParserBuilder().withSeparator(',').build()
+                ).build()) {
 
-            CsvToBean<ProductToUIDto> csvToBean = new CsvToBean<ProductToUIDto>();
-            csvToBean.setMappingStrategy(beanStrategy);
-            csvToBean.setCsvReader(csvReader);
-            List<ProductToUIDto> products = csvToBean.parse();
-            return Flux.fromIterable(products).map(productsService::save).collectList().flatMap(list -> {
-                return ServerResponse.ok()
-                    .render(
-                            "uploadCSVStatus",
-                            Map.of("message", "Импорт завершен успешно, продуктов импортировано: " + list.size())
-                    );
-            });
-        }
+                ColumnPositionMappingStrategy<ProductToUIDto> beanStrategy = new ColumnPositionMappingStrategy<ProductToUIDto>();
+                beanStrategy.setType(ProductToUIDto.class);
+                beanStrategy.setColumnMapping(new String[] {"name","description","price","imageBase64"});
+
+                String[] header = csvReader.readNext();
+                if (!Arrays.equals(header, beanStrategy.getColumnMapping())) {
+                    model.addAttribute("message","Ошибка импорта - некорректный заголовок");
+                    return Mono.just("uploadCSVStatus");
+                }
+
+                CsvToBean<ProductToUIDto> csvToBean = new CsvToBean<ProductToUIDto>();
+                csvToBean.setMappingStrategy(beanStrategy);
+                csvToBean.setCsvReader(csvReader);
+                List<ProductToUIDto> products = csvToBean.parse();
+                return Flux.fromIterable(products).map(productsService::save).collectList().flatMap(list -> {
+                    model.addAttribute("message", "Импорт завершен успешно, продуктов импортировано: " + list.size());
+                    return Mono.just("uploadCSVStatus");
+                });
+            } catch (IOException | CsvValidationException e) {
+                return Mono.error(new RuntimeException(e));
+            }
+        });
     }
 
     @GetMapping("/{id}")
