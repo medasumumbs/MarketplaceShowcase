@@ -158,10 +158,15 @@ public class ProductsController {
                 csvToBean.setMappingStrategy(beanStrategy);
                 csvToBean.setCsvReader(csvReader);
                 List<ProductToUIDto> products = csvToBean.parse();
+                return productsService.saveAll(products).flatMap(unused -> {
+                    model.addAttribute("message", "Импорт завершен успешно, продуктов импортировано: " + products.size());
+                    return Mono.just("uploadCSVStatus");
+                });
+                /*
                 return Flux.fromIterable(products).map(productsService::save).collectList().flatMap(list -> {
                     model.addAttribute("message", "Импорт завершен успешно, продуктов импортировано: " + list.size());
                     return Mono.just("uploadCSVStatus");
-                });
+                });*/
             } catch (IOException | CsvValidationException e) {
                 return Mono.error(new RuntimeException(e));
             }

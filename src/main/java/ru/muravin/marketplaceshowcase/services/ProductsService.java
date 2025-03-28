@@ -34,7 +34,7 @@ public class ProductsService {
         });
     }
     public Mono<Void> save(ProductToUIDto productToUIDto) {
-        return productsReactiveRepository.save(productToUIDto.transformToProduct()).then();
+        return productsReactiveRepository.save(productToUIDto.transformToProduct()).doOnError(e->System.out.println(e)).then();
     }
     public Mono<Long> countAll() {
         return productsReactiveRepository.count();
@@ -82,5 +82,10 @@ public class ProductsService {
                 ((ProductToUIDto)productsMap.get(cartItem.getProductId())).setQuantityInCart(cartItem.getQuantity());
             }
         });
+    }
+
+    public Mono<Void> saveAll(List<ProductToUIDto> products) {
+        var productsEntities = products.stream().map((dto)->dto.transformToProduct()).toList();
+        return productsReactiveRepository.saveAll(productsEntities).then();
     }
 }
