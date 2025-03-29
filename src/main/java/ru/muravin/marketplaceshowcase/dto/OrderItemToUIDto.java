@@ -15,6 +15,12 @@ public class OrderItemToUIDto {
 
     private ProductToUIDto product;
 
+    private String productName;
+
+    private String productDescription;
+
+    private byte[] imageBase64;
+
     private Long productId;
 
     private Integer quantity;
@@ -26,6 +32,7 @@ public class OrderItemToUIDto {
     private String description;
 
     private String base64Image;
+
 
     @Override
     public boolean equals(Object o) {

@@ -24,7 +24,6 @@ public class OrderToUIDto {
         this.id = order.getId();
         this.orderDate = order.getOrderDate();
         for (OrderItemToUIDto orderItem : orderItems) {
-            orderItem.setOrder(this);
             this.orderItems.add(orderItem);
             sum += orderItem.getPrice() * orderItem.getQuantity();
         }

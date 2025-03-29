@@ -1,11 +1,9 @@
 package ru.muravin.marketplaceshowcase.models;
 
-
-import jakarta.persistence.Id;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
@@ -15,7 +13,7 @@ import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderItem {
-    @Id()
+    @Id
     private Long Id;
 
     @Column("order_id")
@@ -41,7 +39,7 @@ public class OrderItem {
     public OrderItem(CartItemToUIDto item, Order order) {
         this.orderId = order.getId();
         this.quantity = item.getQuantity();
-        this.price = item.getProduct().getPrice();
-        this.productId = item.getProduct().getId();
+        this.price = item.getPrice();
+        this.productId = item.getProductId();
     }
 }

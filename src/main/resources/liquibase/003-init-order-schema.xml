@@ -15,6 +15,17 @@
             <dropSequence sequenceName="order_sequence"/>
         </rollback>
     </changeSet>
+    <changeSet id="create_order_products_sequence" author="author">
+        <preConditions>
+            <not>
+                <sequenceExists sequenceName="order_products_sequence"/>
+            </not>
+        </preConditions>
+        <createSequence sequenceName="order_products_sequence" incrementBy="1"/>
+        <rollback>
+            <dropSequence sequenceName="order_products_sequence"/>
+        </rollback>
+    </changeSet>
     <changeSet id="create_orders_table" author="author">
         <preConditions>
             <not>
@@ -32,6 +43,7 @@
                 <constraints nullable="false"/>
             </column>
         </createTable>
+        <addDefaultValue tableName="orders" columnName="id" defaultValueSequenceNext="order_sequence"/>
         <rollback>
             <dropTable tableName="orders"/>
         </rollback>
@@ -76,6 +88,7 @@
                 <constraints nullable="false"/>
             </column>
         </createTable>
+        <addDefaultValue tableName="order_products" columnName="id" defaultValueSequenceNext="order_products_sequence"/>
         <rollback>
             <dropTable tableName="order_products"/>
         </rollback>

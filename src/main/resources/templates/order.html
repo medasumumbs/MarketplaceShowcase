@@ -32,10 +32,10 @@
                 <tr>
                     <td>
                         <!-- В href ссылка на страницу с карточкой товара -->
-                        <a th:href="@{/products/{id}(id=${orderItem.getProduct().getId()})}">
+                        <a th:href="@{/products/{id}(id=${orderItem.getProductId()})}">
                             <!-- В src ссылка изображение товара -->
                             <img width="300" height="300"
-                                 th:src="'data:image/png;base64, '+${orderItem.getProduct().getImageBase64()}"
+                                 th:src="'data:image/png;base64, '+${orderItem.getBase64Image()}"
                             >
                         </a>
                     </td>
@@ -43,15 +43,19 @@
                 <tr>
                     <td>
                         <!-- В text название товара -->
-                        <b th:text="${orderItem.getProduct().getName()}"></b>
+                        <b th:text="${orderItem.getProductName()}"></b>
                     </td>
                     <td>
                         <!-- В text описание товара -->
-                        <b th:text="${orderItem.getProduct().getDescription()}"></b>
+                        <b th:text="${orderItem.getProductDescription()}"></b>
                     </td>
                     <td>
                         <!-- В text цена товара -->
                         <b th:text="${orderItem.getPrice()}"></b>
+                    </td>
+                    <td>
+                        <!-- В text цена товара -->
+                        <b th:text="'Количество: '+${orderItem.getQuantity()}"></b>
                     </td>
                 </tr>
             </table>

@@ -13,7 +13,7 @@ import ru.muravin.marketplaceshowcase.models.OrderItem;
 import java.util.List;
 
 @Repository
-public interface OrderItemsReactiveRepository extends R2dbcRepository<OrderItem, Integer> {
-    @Query("select * from order_products join products on order_products.product_id=products.id  where cart = :cart_id")
+public interface OrderItemsReactiveRepository extends R2dbcRepository<OrderItem, Long> {
+    @Query("select products.image_base64 as image_base_64, * from order_products join products on order_products.product_id=products.id  where order_id = :orderId")
     Flux<OrderItemToUIDto> findAllByOrder_Id(Long orderId);
 }

@@ -17,6 +17,7 @@ import ru.muravin.marketplaceshowcase.repositories.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -47,8 +48,13 @@ public class OrderService {
             return orderReactiveRepository.save(order);
         }).flatMap(order -> {
             return cartItemsReactiveRepository.findAllByCart_Id(cart.getId()).map((item)->{
-                return orderItemsReactiveRepository.save(new OrderItem(item,order));
-            }).then(cartService.deleteAllItemsByCart(cart)).then(Mono.just(order));
+                return new OrderItem(item, order);
+            }).collectList()
+                    .flatMap(entities -> {
+                        System.out.println(entities);
+                        return orderItemsReactiveRepository.saveAll(entities).then();
+                    })
+                    .then(cartService.deleteAllItemsByCart(cart)).then(Mono.just(order));
         });
     }
 
@@ -62,12 +68,14 @@ public class OrderService {
         return Mono.zip(orderMono, orderItemsMono).flatMap(tuple -> {
             var order = tuple.getT1();
             var orderItems = tuple.getT2();
+
             var orderToUIDto = new OrderToUIDto(order, orderItems);
-            orderToUIDto.getOrderItems().forEach(orderItem -> {orderItem.setOrder(orderToUIDto);});
+            orderToUIDto.getOrderItems().forEach(orderItem -> {
+                orderItem.setBase64Image(new String(orderItem.getImageBase64()));
+            });
             return Mono.just(orderToUIDto);
         });
     }
-
     public Flux<OrderToUIDto> findAll() {
         return orderReactiveRepository.findAll().flatMap(order -> {
             return orderItemsReactiveRepository

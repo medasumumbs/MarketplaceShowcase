@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.OrderToUIDto;
 import ru.muravin.marketplaceshowcase.services.CartService;
@@ -28,19 +29,20 @@ public class OrderController {
     }
 
     @PostMapping
-    public Mono<ServerResponse> addOrder() {
+    public Mono<Rendering> addOrder() {
         return cartService.getFirstCartIdMono()
                 .flatMap(cartService::getCartById)
                 .flatMap(orderService::addOrder)
-                .flatMap((order) -> {
-                    return ServerResponse.temporaryRedirect(URI.create("redirect:/orders/" + order.getId() + "?justBought=true")).build();
+                .map((order) -> {
+                    return Rendering.redirectTo("/orders/" + order.getId() + "?justBought=true").build();
                 });
     }
     @GetMapping("/{id}")
-    public Mono<ServerResponse> getOrder(@PathVariable Long id,
+    public Mono<Rendering> getOrder(@PathVariable Long id,
                            @RequestParam(name = "justBought",defaultValue = "false") boolean justBought) {
-        return orderService.findOrderToUIDtoById(id).flatMap(dto -> {
-            return ServerResponse.ok().render("order", Map.of("order", dto, "justBought", justBought));
+        return orderService.findOrderToUIDtoById(id).map(dto -> {
+            return Rendering.view("order").modelAttribute("order",dto)
+                    .modelAttribute("justBought",justBought).build();
         });
     }
     @GetMapping

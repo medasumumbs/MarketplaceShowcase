@@ -17,6 +17,8 @@ public class CartItemToUIDto {
 
     private Long cartId;
 
+    private Double price;
+
     private ProductToUIDto product;
 
     private Long productId;
