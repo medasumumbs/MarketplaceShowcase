@@ -8,6 +8,7 @@ import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownProductException;
 import ru.muravin.marketplaceshowcase.models.CartItem;
+import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.repositories.ProductsReactiveRepository;
 
 import java.util.HashMap;
@@ -24,15 +25,33 @@ public class ProductsService {
         this.productsReactiveRepository = productsReactiveRepository;
         this.cartService = cartService;
     }
-    public Flux<ProductToUIDto> findAll(PageRequest pageRequest, int pageNumber, int pageSize) {
+    public Flux<ProductToUIDto> findAll(PageRequest pageRequest, int pageNumber, int pageSize, String sort) {
         int offset = pageNumber * pageSize;
-        var products = productsReactiveRepository.findAll(pageRequest, pageSize, offset).map(ProductToUIDto::new).collectList();
+        Flux<Product> productFlux;
+        if (sort == null || sort.isEmpty()) {
+            productFlux = productsReactiveRepository.findAll(pageSize, offset);
+        } else {
+            if (sort.equalsIgnoreCase("name")) {
+                productFlux = productsReactiveRepository.findAllSortByName(pageSize, offset);
+            } else if (sort.equalsIgnoreCase("price")) {
+                productFlux = productsReactiveRepository.findAllSortByPrice(pageSize, offset);
+            } else {
+                productFlux = productsReactiveRepository.findAll(pageSize, offset);
+            }
+        }
+
+        return getProductToUIDtoFlux(productFlux);
+    }
+
+    private Flux<ProductToUIDto> getProductToUIDtoFlux(Flux<Product> productFlux) {
+        var products = productFlux.map(ProductToUIDto::new).collectList();
         var cartItems = cartService.getCartItemsFlux(cartService.getFirstCartIdMono()).collectList();
         return Mono.zip(products, cartItems).flatMapMany(tuple -> {
             enrichDtoListWithCartQuantities(tuple.getT1(), tuple.getT2());
             return Flux.fromIterable(tuple.getT1());
         });
     }
+
     public Mono<Void> save(ProductToUIDto productToUIDto) {
         return productsReactiveRepository.save(productToUIDto.transformToProduct()).doOnError(e->System.out.println(e)).then();
     }
@@ -40,18 +59,22 @@ public class ProductsService {
         return productsReactiveRepository.count();
     }
 
-    public Flux<ProductToUIDto> findByNameLike(String search, PageRequest pageRequest) {
-        var products = productsReactiveRepository
-                .findByNameLike(
-                        search,
-                        pageRequest.getPageSize(),
-                        pageRequest.getPageSize()*pageRequest.getPageNumber())
-                .map(ProductToUIDto::new).collectList();
-        var cartItems = cartService.getCartItemsFlux(cartService.getFirstCartIdMono()).collectList();
-        return Mono.zip(products, cartItems).flatMapMany(tuple -> {
-            enrichDtoListWithCartQuantities(tuple.getT1(), tuple.getT2());
-            return Flux.fromIterable(tuple.getT1());
-        });
+    public Flux<ProductToUIDto> findByNameLike(String search, PageRequest pageRequest, String sort) {
+        Flux<Product> productFlux;
+        var limit = pageRequest.getPageSize();
+        var offset = pageRequest.getPageSize() * pageRequest.getPageNumber();
+        if (sort != null && !sort.isEmpty()) {
+            if (sort.equalsIgnoreCase("name")) {
+                productFlux = productsReactiveRepository.findByNameLikeSortByName(search, limit, offset);
+            } else if (sort.equalsIgnoreCase("price")) {
+                productFlux = productsReactiveRepository.findByNameLikeSortByPrice(search, limit, offset);
+            } else {
+                productFlux = productsReactiveRepository.findByNameLike(search, limit, offset);
+            }
+        } else {
+            productFlux = productsReactiveRepository.findByNameLike(search, limit, offset);
+        }
+        return getProductToUIDtoFlux(productFlux);
     }
     public Mono<Long> countByNameLike(String search) {
         return productsReactiveRepository.countByNameContainingIgnoreCase(search);

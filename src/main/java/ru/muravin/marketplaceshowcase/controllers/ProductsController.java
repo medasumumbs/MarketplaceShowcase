@@ -66,9 +66,9 @@ public class ProductsController {
         var pageRequest = PageRequest.of(pageNumber-1, pageSize, sortingObject);
         Flux<ProductToUIDto> productsFlux;
         if ((search != null) && (!search.isEmpty())) {
-            productsFlux = productsService.findByNameLike(search, pageRequest);
+            productsFlux = productsService.findByNameLike(search, pageRequest, sortingColumn);
         } else {
-            productsFlux = productsService.findAll(pageRequest, pageRequest.getPageNumber(), pageRequest.getPageSize());
+            productsFlux = productsService.findAll(pageRequest, pageRequest.getPageNumber(), pageRequest.getPageSize(), sortingColumn);
         }
         Mono<Long> countAllMono;
         if ((search != null) && (!search.isEmpty())) {
@@ -118,11 +118,6 @@ public class ProductsController {
                         .then(Mono.just(Rendering.redirectTo("/products/"+itemId).build()));
             }
         });
-    }
-    @PostMapping(value = "/{id1}/changeCartItemQuantity/{id}", params = "action=minus")
-    public Mono<ServerResponse> decreaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
-        return cartService.removeCartItem(itemId.longValue())
-                .then(Mono.defer(() -> ServerResponse.temporaryRedirect(URI.create("/products/"+itemId)).build()));
     }
     @PostMapping(value = "/cart/changeCartItemQuantity/{id}", params = "action=plus")
     public Mono<ServerResponse> increaseCartItemQuantityAndShowCart(@PathVariable(name = "id") Integer itemId) {
