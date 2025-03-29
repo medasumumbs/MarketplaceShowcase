@@ -22,6 +22,7 @@ import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 
 import ru.muravin.marketplaceshowcase.services.CartService;
+import ru.muravin.marketplaceshowcase.services.ProductsCSVService;
 import ru.muravin.marketplaceshowcase.services.ProductsService;
 
 import java.io.*;
@@ -33,11 +34,13 @@ import java.util.*;
 public class ProductsController {
     private final ProductsService productsService;
     private final CartService cartService;
+    private final ProductsCSVService productsCSVService;
 
     @Autowired
-    public ProductsController(ProductsService productsService, CartService cartService){
+    public ProductsController(ProductsService productsService, CartService cartService, ProductsCSVService productsCSVService){
         this.productsService = productsService;
         this.cartService = cartService;
+        this.productsCSVService = productsCSVService;
     }
 
     @GetMapping(produces = MediaType.TEXT_HTML_VALUE + ";charset=UTF-8")
@@ -126,51 +129,16 @@ public class ProductsController {
 
     @PostMapping(
             value = "/uploadCSV",
-            consumes = "multipart/form-data" // Обязательно включаем медиа-тип
+            consumes = "multipart/form-data"
     )
-    public Mono<String> uploadIcon(
-            @RequestPart("csv")  Mono<byte[]> file, // Файл в виде массива байт
-            Model model) throws IOException, CsvValidationException {
-        return file.flatMap((csvFile) -> {
-            if (csvFile.length==0) {
-                model.addAttribute("message","Файл пуст, импорт не выполнен");
-                return Mono.just("uploadCSVStatus");
+    public Mono<Rendering> uploadIcon(@RequestPart("csv") Mono<byte[]> file) {
+        return file.flatMap(csvFile -> {
+            if (csvFile.length == 0) {
+                // Если файл пустой, возвращаем сообщение об ошибке
+                return Mono.just("Файл пуст, импорт не выполнен");
             }
-            try (CSVReader csvReader = new CSVReaderBuilder(
-                    new BufferedReader(
-                        new InputStreamReader(new ByteArrayInputStream(csvFile))
-                    )
-                ).withCSVParser(
-                    new CSVParserBuilder().withSeparator(',').build()
-                ).build()) {
-
-                ColumnPositionMappingStrategy<ProductToUIDto> beanStrategy = new ColumnPositionMappingStrategy<ProductToUIDto>();
-                beanStrategy.setType(ProductToUIDto.class);
-                beanStrategy.setColumnMapping(new String[] {"name","description","price","imageBase64"});
-
-                String[] header = csvReader.readNext();
-                if (!Arrays.equals(header, beanStrategy.getColumnMapping())) {
-                    model.addAttribute("message","Ошибка импорта - некорректный заголовок");
-                    return Mono.just("uploadCSVStatus");
-                }
-
-                CsvToBean<ProductToUIDto> csvToBean = new CsvToBean<ProductToUIDto>();
-                csvToBean.setMappingStrategy(beanStrategy);
-                csvToBean.setCsvReader(csvReader);
-                List<ProductToUIDto> products = csvToBean.parse();
-                return productsService.saveAll(products).flatMap(unused -> {
-                    model.addAttribute("message", "Импорт завершен успешно, продуктов импортировано: " + products.size());
-                    return Mono.just("uploadCSVStatus");
-                });
-                /*
-                return Flux.fromIterable(products).map(productsService::save).collectList().flatMap(list -> {
-                    model.addAttribute("message", "Импорт завершен успешно, продуктов импортировано: " + list.size());
-                    return Mono.just("uploadCSVStatus");
-                });*/
-            } catch (IOException | CsvValidationException e) {
-                return Mono.error(new RuntimeException(e));
-            }
-        });
+            return productsCSVService.uploadCSV(csvFile);
+        }).flatMap(message -> Mono.just(Rendering.view("uploadCSVStatus").modelAttribute("message",message).build()));
     }
 
     @GetMapping("/{id}")

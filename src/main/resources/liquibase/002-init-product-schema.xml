@@ -15,7 +15,7 @@
             <dropSequence sequenceName="product_sequence"/>
         </rollback>
     </changeSet>
-    <changeSet id="create_products_table" author="author">
+    <changeSet id="create_products_table1" author="author">
         <preConditions>
             <not>
                 <tableExists tableName="products"/>
@@ -34,6 +34,7 @@
             <column name="description" type="varchar(500)"/>
             <column name="image_base64" type="bytea"/>
         </createTable>
+        <addDefaultValue tableName="products" columnName="id" defaultValueSequenceNext="product_sequence"/>
         <rollback>
             <dropTable tableName="products"/>
         </rollback>
