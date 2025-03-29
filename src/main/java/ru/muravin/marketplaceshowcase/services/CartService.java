@@ -6,14 +6,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
-import ru.muravin.marketplaceshowcase.exceptions.UnknownCartException;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownProductException;
 import ru.muravin.marketplaceshowcase.models.Cart;
 import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.repositories.*;
-
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class CartService {
@@ -88,7 +84,7 @@ public class CartService {
     public Flux<CartItem> getCartItemsFlux(Mono<Long> cartId) {
         return cartId.flatMapMany(cartItemsReactiveRepository::findAllByCart_Id).map(CartItemToUIDto::toCartItem);
     }
-    public Mono<CartItem> getCartItemFlux(Long cartId, Long productId) {
+    public Mono<CartItem> getCartItemMono(Long cartId, Long productId) {
         return cartItemsReactiveRepository.findByProductIdAndCartId(cartId, productId);
     }
     public Flux<CartItemToUIDto> getCartItemsDtoFlux(Mono<Long> cartId) {

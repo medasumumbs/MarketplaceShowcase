@@ -58,15 +58,28 @@ public class ProductsService {
     }
 
     public Mono<ProductToUIDto> findById(Long id) {
-        var cartItem = cartService.getCartItemFlux(cartService.getFirstCartIdMono().block(), id);
-        var product = productsReactiveRepository.findById(id).map(ProductToUIDto::new)
-                .switchIfEmpty(Mono.error(()->new UnknownProductException("Product "+id+" not found")));
-        return Mono.zip(cartItem, product).map(tuple -> {
-            var cartItemValue = tuple.getT1();
-            var productValue = tuple.getT2();
-            enrichDtoListWithCartQuantities(List.of(productValue), List.of(cartItemValue));
-            return productValue;
-        });
+        // Поток для продукта
+        var productMono = productsReactiveRepository.findById(id)
+                .map(ProductToUIDto::new) // Преобразуем Product в ProductToUIDto
+                .switchIfEmpty(Mono.error(() -> new UnknownProductException("Product " + id + " not found")));
+
+        // Поток для элемента корзины
+        var cartItemMono = cartService.getFirstCartIdMono()
+                .flatMap(cartId -> cartService.getCartItemMono(cartId, id)).defaultIfEmpty(new CartItem());
+
+        // Объединяем потоки
+        return Mono.zip(productMono, cartItemMono)
+                .flatMap(tuple -> {
+                    var productToUIDto = tuple.getT1();
+                    var cartItem = tuple.getT2();
+
+                    // Обогащаем DTO данными из корзины
+                    enrichDtoListWithCartQuantities(List.of(productToUIDto), List.of(cartItem));
+
+                    System.out.println("productToUIDto: " + productToUIDto);
+
+                    return Mono.just(productToUIDto);
+                });
     }
 
     private void enrichDtoListWithCartQuantities(List<ProductToUIDto> dtoList, List<CartItem> cartItems) {

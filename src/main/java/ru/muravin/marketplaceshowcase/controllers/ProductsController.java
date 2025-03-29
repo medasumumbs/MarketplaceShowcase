@@ -131,7 +131,7 @@ public class ProductsController {
             value = "/uploadCSV",
             consumes = "multipart/form-data"
     )
-    public Mono<Rendering> uploadIcon(@RequestPart("csv") Mono<byte[]> file) {
+    public Mono<Rendering> uploadCSV(@RequestPart("csv") Mono<byte[]> file) {
         return file.flatMap(csvFile -> {
             if (csvFile.length == 0) {
                 // Если файл пустой, возвращаем сообщение об ошибке
@@ -142,21 +142,21 @@ public class ProductsController {
     }
 
     @GetMapping("/{id}")
-    public Mono<ServerResponse> itemPage(Model model, @PathVariable(name = "id") Long id) {
+    public Mono<Rendering> itemPage(@PathVariable(name = "id") Long id) {
         return productsService.findById(id)
-                .flatMap(productToUIDto -> ServerResponse.ok().render("item", Map.of("product",productToUIDto)));
+                .flatMap(productToUIDto ->
+                        Mono.just(Rendering.view("item").modelAttribute("product",productToUIDto).build()));
     }
 
     @ExceptionHandler({IOException.class, CsvValidationException.class})
-    public Mono<ServerResponse> CSVErrorPage(Model model, Exception exception) {
+    public Mono<Rendering> CSVErrorPage(Model model, Exception exception) {
         exception.printStackTrace();
-        return ServerResponse.status(500)
-                .render("errorPage", "Ошибка импорта - проверьте файл на корректность: " + exception.getCause());
+        return Mono.just(Rendering.view("errorPage").modelAttribute("message", "Ошибка импорта - проверьте файл на корректность: " + exception.getCause()).build());
     }
     @ExceptionHandler(Exception.class)
-    public Mono<ServerResponse> unknownErrorPage(Model model, Exception exception) {
+    public Mono<Rendering> unknownErrorPage(Model model, Exception exception) {
         exception.printStackTrace();
-        return ServerResponse.status(500).render("errorPage", Map.of("message","Неизвестная ошибка: " + exception.getMessage()));
+        return Mono.just(Rendering.view("errorPage").modelAttribute("message", "Неизвестная ошибка: " + exception.getMessage()).build());
     }
 
 }
