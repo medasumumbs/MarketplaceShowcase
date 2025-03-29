@@ -105,10 +105,19 @@ public class ProductsController {
             }
         });
     }
-    @PostMapping(value = "/{id1}/changeCartItemQuantity/{id}", params = "action=plus")
-    public Mono<Rendering> increaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
-        return cartService.addCartItem(itemId.longValue())
-                .then(Mono.just(Rendering.redirectTo("/products/"+itemId.longValue()).build()));
+    @PostMapping(value = "/{id1}/changeCartItemQuantity/{id}")
+    public Mono<Rendering> changeCartItemQuantityAndShowItem(
+            @PathVariable(name = "id") Integer itemId,
+            ServerWebExchange exchange) {
+        return exchange.getFormData().flatMap(data->{
+            if (Objects.equals(data.getFirst("action"), "plus")) {
+                return cartService.addCartItem(itemId.longValue())
+                        .then(Mono.just(Rendering.redirectTo("/products/"+itemId).build()));
+            } else {
+                return cartService.removeCartItem(itemId.longValue())
+                        .then(Mono.just(Rendering.redirectTo("/products/"+itemId).build()));
+            }
+        });
     }
     @PostMapping(value = "/{id1}/changeCartItemQuantity/{id}", params = "action=minus")
     public Mono<ServerResponse> decreaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
