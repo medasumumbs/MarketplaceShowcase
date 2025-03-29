@@ -88,19 +88,17 @@ public class ProductsService {
 
         // Поток для элемента корзины
         var cartItemMono = cartService.getFirstCartIdMono()
-                .flatMap(cartId -> cartService.getCartItemMono(cartId, id)).defaultIfEmpty(new CartItem());
+                .flatMap(cartId -> {
+                    return cartService.getCartItemMono(cartId, id);
+                }).defaultIfEmpty(new CartItem());
 
         // Объединяем потоки
         return Mono.zip(productMono, cartItemMono)
                 .flatMap(tuple -> {
                     var productToUIDto = tuple.getT1();
                     var cartItem = tuple.getT2();
-
                     // Обогащаем DTO данными из корзины
                     enrichDtoListWithCartQuantities(List.of(productToUIDto), List.of(cartItem));
-
-                    System.out.println("productToUIDto: " + productToUIDto);
-
                     return Mono.just(productToUIDto);
                 });
     }
