@@ -61,7 +61,7 @@
         </rollback>
     </changeSet>
 
-    <changeSet id="create_carts_product_table" author="author">
+    <changeSet id="create_carts_product_table1" author="author">
         <preConditions>
             <not>
                 <tableExists tableName="cart_products"/>
@@ -81,6 +81,7 @@
                 <constraints nullable="false"/>
             </column>
         </createTable>
+        <addDefaultValue tableName="cart_products" columnName="id" defaultValueSequenceNext="cart_product_sequence"/>
         <rollback>
             <dropTable tableName="cart_products"/>
         </rollback>

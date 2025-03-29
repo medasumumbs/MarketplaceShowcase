@@ -19,6 +19,8 @@ public class CartItemToUIDto {
 
     private ProductToUIDto product;
 
+    private Long productId;
+
     private Integer quantity;
 
     public CartItemToUIDto(CartItem cartItem, ProductToUIDto product) {
@@ -29,8 +31,8 @@ public class CartItemToUIDto {
     public CartItem toCartItem() {
         CartItem cartItem = new CartItem();
         BeanUtils.copyProperties(this, cartItem);
-        cartItem.setCartId(cart.getId());
-        cartItem.setProductId(product.getId());
+        cartItem.setCartId(cartId);
+        cartItem.setProductId(productId);
         return cartItem;
     }
 }

@@ -35,14 +35,12 @@ public class CartService {
             tuple -> {
                 var product = tuple.getT1();
                 var cartId = tuple.getT2();
-                return cartItemsReactiveRepository.findByProductIdAndCartId(product.getId(), cartId).flatMap(cartItem -> {
-                    if (cartItem != null) {
-                        cartItem.setQuantity(cartItem.getQuantity() + 1);
-                    } else {
-                        cartItem = new CartItem(productId,cartId);
-                    }
-                    return cartItemsReactiveRepository.save(cartItem);
-                });
+                return cartItemsReactiveRepository.findByProductIdAndCartId(product.getId(), cartId)
+                        .flatMap(cartItem -> {
+                            cartItem.setQuantity(cartItem.getQuantity() + 1);
+                            return cartItemsReactiveRepository.save(cartItem);
+                        })
+                        .switchIfEmpty(cartItemsReactiveRepository.save(new CartItem(productId,cartId)));
             }
         ).then();
     }

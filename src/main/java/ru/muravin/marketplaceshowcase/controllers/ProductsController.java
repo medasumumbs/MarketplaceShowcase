@@ -9,14 +9,17 @@ import com.opencsv.exceptions.CsvValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.result.view.Rendering;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
@@ -90,20 +93,22 @@ public class ProductsController {
         });
     }
 
-    @PostMapping(value = "/changeCartItemQuantity/{id}", params = "action=plus")
-    public Mono<ServerResponse> increaseCartItemQuantity(@PathVariable(name = "id") Integer itemId) {
-        return cartService.addCartItem(itemId.longValue())
-                .then(Mono.defer(() -> ServerResponse.temporaryRedirect(URI.create("/products/")).build()));
-    }
-    @PostMapping(value = "/changeCartItemQuantity/{id}", params = "action=minus")
-    public Mono<ServerResponse> decreaseCartItemQuantity(@PathVariable(name = "id") Integer itemId) {
-        return cartService.removeCartItem(itemId.longValue())
-                .then(Mono.defer(() -> ServerResponse.temporaryRedirect(URI.create("/products")).build()));
+    @PostMapping(value = "/changeCartItemQuantity/{id}")
+    public Mono<Rendering> changeCartItemQuantity(@PathVariable(name = "id") Integer itemId, ServerWebExchange exchange) {
+        return exchange.getFormData().flatMap(data->{
+            if (Objects.equals(data.getFirst("action"), "plus")) {
+                return cartService.addCartItem(itemId.longValue())
+                        .then(Mono.just(Rendering.redirectTo("/products").build()));
+            } else {
+                return cartService.removeCartItem(itemId.longValue())
+                        .then(Mono.just(Rendering.redirectTo("/products").build()));
+            }
+        });
     }
     @PostMapping(value = "/{id1}/changeCartItemQuantity/{id}", params = "action=plus")
-    public Mono<ServerResponse> increaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
+    public Mono<Rendering> increaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
         return cartService.addCartItem(itemId.longValue())
-                .then(Mono.defer(() -> ServerResponse.temporaryRedirect(URI.create("/products/" + itemId.longValue())).build()));
+                .then(Mono.just(Rendering.redirectTo("/products/"+itemId.longValue()).build()));
     }
     @PostMapping(value = "/{id1}/changeCartItemQuantity/{id}", params = "action=minus")
     public Mono<ServerResponse> decreaseCartItemQuantityAndShowItem(@PathVariable(name = "id") Integer itemId) {
