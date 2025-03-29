@@ -1,23 +1,14 @@
 package ru.muravin.marketplaceshowcase.controllers;
 
-import com.opencsv.CSVParserBuilder;
-import com.opencsv.CSVReader;
-import com.opencsv.CSVReaderBuilder;
-import com.opencsv.bean.ColumnPositionMappingStrategy;
-import com.opencsv.bean.CsvToBean;
 import com.opencsv.exceptions.CsvValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.reactive.function.server.ServerRequest;
-import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.result.view.Rendering;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
@@ -29,7 +20,6 @@ import ru.muravin.marketplaceshowcase.services.ProductsCSVService;
 import ru.muravin.marketplaceshowcase.services.ProductsService;
 
 import java.io.*;
-import java.net.URI;
 import java.util.*;
 
 @Controller
@@ -119,15 +109,17 @@ public class ProductsController {
             }
         });
     }
-    @PostMapping(value = "/cart/changeCartItemQuantity/{id}", params = "action=plus")
-    public Mono<ServerResponse> increaseCartItemQuantityAndShowCart(@PathVariable(name = "id") Integer itemId) {
-        return cartService.addCartItem(itemId.longValue())
-                .then(Mono.defer(() -> ServerResponse.temporaryRedirect(URI.create("/cart")).build()));
-    }
-    @PostMapping(value = "/cart/changeCartItemQuantity/{id}", params = "action=minus")
-    public Mono<ServerResponse> decreaseCartItemQuantityAndShowCart(@PathVariable(name = "id") Integer itemId) {
-        return cartService.removeCartItem(itemId.longValue())
-                .then(Mono.defer(() -> ServerResponse.temporaryRedirect(URI.create("/cart")).build()));
+    @PostMapping(value = "/cart/changeCartItemQuantity/{id}")
+    public Mono<Rendering> changeCartItemQuantityAndShowCart(@PathVariable(name = "id") Integer itemId, ServerWebExchange exchange) {
+        return exchange.getFormData().flatMap(data->{
+            if (Objects.equals(data.getFirst("action"), "plus")) {
+                return cartService.addCartItem(itemId.longValue())
+                        .then(Mono.just(Rendering.redirectTo("/cart").build()));
+            } else {
+                return cartService.removeCartItem(itemId.longValue())
+                        .then(Mono.just(Rendering.redirectTo("/cart").build()));
+            }
+        });
     }
 
 
