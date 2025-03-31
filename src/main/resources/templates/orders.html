@@ -22,7 +22,7 @@
             </h2>
             <table>
                 <tr th:each="item: ${order.getOrderItems()}">
-                    <td th:text="${'Название: ' + item.getProduct().getName() + '; количество: ' + item.getQuantity() + '; стоимость: ' + item.getPrice()}"></td>
+                    <td th:text="${'Название: ' + item.getName() + '; количество: ' + item.getQuantity() + '; стоимость: ' + item.getPrice()}"></td>
                 </tr>
             </table>
             <p>

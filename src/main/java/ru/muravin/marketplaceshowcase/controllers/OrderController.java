@@ -46,9 +46,9 @@ public class OrderController {
         });
     }
     @GetMapping
-    public Mono<ServerResponse> getOrders() {
+    public Mono<Rendering> getOrders() {
         return orderService.findAll().collectList().flatMap(orders -> {
-            return ServerResponse.ok().render("orders", Map.of("orders", orders));
+            return Mono.just(Rendering.view("orders").modelAttribute("orders", orders).build());
         });
     }
 }

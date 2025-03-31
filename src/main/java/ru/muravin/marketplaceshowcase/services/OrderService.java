@@ -80,7 +80,14 @@ public class OrderService {
         return orderReactiveRepository.findAll().flatMap(order -> {
             return orderItemsReactiveRepository
                     .findAllByOrder_Id(order.getId()).collectList()
-                    .map((orderItems -> new OrderToUIDto(order, orderItems)));
+                    .flatMap((orderItems -> {
+                        var dto = new OrderToUIDto(order, orderItems);
+                        dto.getOrderItems().forEach(orderItem -> {
+                            orderItem.setBase64Image(new String(orderItem.getImageBase64()));
+                            orderItem.setImageBase64(null);
+                        });
+                        return Mono.just(dto);
+                    }));
         });
     }
 }
