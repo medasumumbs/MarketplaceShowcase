@@ -15,6 +15,8 @@ import ru.muravin.marketplaceshowcase.TestcontainersConfiguration;
 import ru.muravin.marketplaceshowcase.models.Cart;
 import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.models.User;
+import ru.muravin.marketplaceshowcase.repositories.CartItemsReactiveRepository;
+import ru.muravin.marketplaceshowcase.repositories.CartsReactiveRepository;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -29,6 +31,11 @@ public class CartControllerTest {
     @Autowired
     private WebApplicationContext webApplicationContext;
 
+    @Autowired
+    private CartsReactiveRepository cartsReactiveRepository;
+
+    @Autowired
+    private CartItemsReactiveRepository cartItemsReactiveRepository;
   /*  @Autowired
     CartItemRepository cartItemRepository;
     @Autowired
@@ -55,7 +62,7 @@ public class CartControllerTest {
         user.setEmail("abc@gmail.com");
         var cart = new Cart();
         //userRepository.save(user);
-        cart.setUser(user);
+        //cart.setUser(user);
         //cartsRepository.save(cart);
 
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);

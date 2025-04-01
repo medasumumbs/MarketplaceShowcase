@@ -4,27 +4,40 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockReset;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.MarketplaceShowcaseApplication;
 import ru.muravin.marketplaceshowcase.TestcontainersConfiguration;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownCartException;
 import ru.muravin.marketplaceshowcase.models.Cart;
 import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.Product;
+import ru.muravin.marketplaceshowcase.repositories.CartItemsReactiveRepository;
+import ru.muravin.marketplaceshowcase.repositories.CartsReactiveRepository;
 import ru.muravin.marketplaceshowcase.services.CartService;
 
+import static org.hamcrest.Matchers.any;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(classes = MarketplaceShowcaseApplication.class)
-@Disabled
 public class CartServiceTest {
     @Autowired
     CartService cartService;
+
+    @MockitoBean(reset = MockReset.BEFORE)
+    private CartItemsReactiveRepository cartItemsReactiveRepository;
+
+    @MockitoBean(reset = MockReset.BEFORE)
+    private CartsReactiveRepository cartsReactiveRepository;
 /*
     @MockitoBean(reset= MockReset.BEFORE)
     ProductsRepository productsRepository;*/
 
 
+    /*
     @Test
     void addCartItemTest() {
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
@@ -135,11 +148,12 @@ public class CartServiceTest {
         //when(cartItemRepository.findAllByCart(cart)).thenReturn(List.of(cartItem,cartItem));
         //assertEquals(100d, cartService.getCartSum(1L));
     }
+    */
     @Test
     void deleteAllItemsByCartTest() {
         var cart = new Cart();
-        //doNothing().when(cartItemRepository).deleteByCart(any(cart.getClass()));
-        cartService.deleteAllItemsByCart(cart);
-        //verify(cartItemRepository, times(1)).deleteByCart(cart);
+        cart.setId(1L);
+        when(cartItemsReactiveRepository.deleteByCartId(1L)).thenReturn(Mono.empty());
+        cartService.deleteAllItemsByCart(cart).doOnSuccess(v -> verify(cartItemsReactiveRepository, times(1)).deleteByCartId(1L)).block();
     }
 }

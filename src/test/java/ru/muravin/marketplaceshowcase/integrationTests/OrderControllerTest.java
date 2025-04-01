@@ -57,7 +57,7 @@ public class OrderControllerTest {
         user.setEmail("abc@gmail.com");
         var cart = new Cart();
         //userRepository.save(user);
-        cart.setUser(user);
+       // cart.setUser(user);
         //cartsRepository.save(cart);
 
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
