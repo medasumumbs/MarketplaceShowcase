@@ -1,20 +1,26 @@
 package ru.muravin.marketplaceshowcase.integrationTests;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import reactor.core.publisher.Flux;
 import ru.muravin.marketplaceshowcase.MarketplaceShowcaseApplication;
 import ru.muravin.marketplaceshowcase.TestcontainersConfiguration;
 import ru.muravin.marketplaceshowcase.models.Cart;
+import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.models.User;
+import ru.muravin.marketplaceshowcase.repositories.*;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertTrue;
@@ -26,76 +32,75 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(classes = MarketplaceShowcaseApplication.class)
 @Import(TestcontainersConfiguration.class)
 @TestPropertySource(locations = "classpath:application.yml")
-@Disabled
+@AutoConfigureWebTestClient
 public class OrderControllerTest {
     @Autowired
-    private WebApplicationContext webApplicationContext;
-
-    /*@Autowired
-    CartItemRepository cartItemRepository;
+    WebTestClient webTestClient;
     @Autowired
-    OrderItemRepository orderItemRepository;
+    CartItemsReactiveRepository cartItemsReactiveRepository;
     @Autowired
-    OrderRepository orderRepository;
+    OrderItemsReactiveRepository orderItemsReactiveRepository;
     @Autowired
-    ProductsRepository productsRepository;*/
-
-    private MockMvc mockMvc; // Используется для отправки HTTP-запросов
+    OrderReactiveRepository orderReactiveRepository;
+    @Autowired
+    ProductsReactiveRepository productsReactiveRepository;
+    @Autowired
+    private CartsReactiveRepository cartsReactiveRepository;
+    @Autowired
+    private UserReactiveRepository userReactiveRepository;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-        /*cartItemRepository.deleteAll();
-        orderItemRepository.deleteAll();
-        productsRepository.deleteAll();
-        orderRepository.deleteAll();*/
-        //userRepository.deleteAll();
-        //cartsRepository.deleteAll();
+        cartItemsReactiveRepository.deleteAll().block();
+        orderItemsReactiveRepository.deleteAll().block();
+        productsReactiveRepository.deleteAll().block();
+        orderReactiveRepository.deleteAll().block();
+        cartsReactiveRepository.deleteAll().block();
+        userReactiveRepository.deleteAll().block();
         var user = new User();
         user.setUsername("username");
         user.setPassword("password");
         user.setEmail("abc@gmail.com");
         var cart = new Cart();
-        //userRepository.save(user);
-       // cart.setUser(user);
-        //cartsRepository.save(cart);
-
+        user = userReactiveRepository.save(user).block();
+        cart.setUserId(user.getId());
+        cartsReactiveRepository.save(cart).block();
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         product.setId(null);
-        //productsRepository.save(product);
+        productsReactiveRepository.save(product).block();
     }
 
     @Test
     void addOrderTest() throws Exception {
-        /*CartItem cartItem = new CartItem(productsRepository.findAll().get(0),cartsRepository.findAll().get(0));
+        var product = productsReactiveRepository.findAll().blockFirst();
+        var cart = cartsReactiveRepository.findAll().blockFirst();
+        CartItem cartItem = new CartItem(product,cart);
         cartItem.setQuantity(5);
-        cartItemRepository.save(cartItem);
+        cartItemsReactiveRepository.save(cartItem).block();
 
-        mockMvc.perform(post("/orders"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(result -> {
-                    String redirectedUrl = result.getResponse().getRedirectedUrl();
-                    Assertions.assertTrue(Objects.requireNonNull(redirectedUrl).startsWith("/orders"));
-                    Assertions.assertTrue(Objects.requireNonNull(redirectedUrl).endsWith("?justBought=true"));
-                });*/
+        Flux.just(webTestClient.post().uri("/orders").exchange().expectStatus()).doOnNext(a->{
+            var orderId = orderReactiveRepository.findAll().blockLast().getId();
+            a.is3xxRedirection().expectHeader().location("/orders/"+orderId+"?justBought=true");
+        }).blockLast();
+
     }
+
     @Test
     void getOrderTest() throws Exception {
         addOrderTest();
-        //var orderId = orderRepository.findAll().get(0).getId();
-        var orderId = 123;
-        mockMvc.perform(get("/orders/"+orderId))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("125")))
-                .andExpect(content().string(containsString("iphone")));
+        var orderId = orderReactiveRepository.findAll().blockLast().getId();
+        webTestClient.get().uri("/orders/"+orderId).exchange().expectStatus().isOk().expectBody(String.class).value(body->{
+            Assertions.assertTrue(body.contains("125"));
+            Assertions.assertTrue(body.contains("iphone"));
+        });
     }
     @Test
     void getOrdersTest() throws Exception {
         addOrderTest();
-        //var orderId = orderRepository.findAll().get(0).getId();
-        mockMvc.perform(get("/orders"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("125")))
-                .andExpect(content().string(containsString("iphone")));
+        var orderId = orderReactiveRepository.findAll().blockLast().getId();
+        webTestClient.get().uri("/orders").exchange().expectStatus().isOk().expectBody(String.class).value(body->{
+            Assertions.assertTrue(body.contains("125"));
+            Assertions.assertTrue(body.contains("iphone"));
+        });
     }
 }
