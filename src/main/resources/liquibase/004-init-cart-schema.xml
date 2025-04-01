@@ -40,6 +40,7 @@
                 <constraints nullable="false"/>
             </column>
         </createTable>
+        <addDefaultValue tableName="carts" columnName="id" defaultValueSequenceNext="cart_sequence"/>
         <rollback>
             <dropTable tableName="carts"/>
         </rollback>

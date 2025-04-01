@@ -42,6 +42,7 @@
             <column name="email" value="john.doe@example.com"/>
             <column name="password" value="123"/>
         </insert>
+        <addDefaultValue tableName="users" columnName="id" defaultValueSequenceNext="user_sequence"/>
         <rollback>
             <dropTable tableName="users"/>
         </rollback>
