@@ -11,10 +11,13 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.WebApplicationContext;
 import ru.muravin.marketplaceshowcase.MarketplaceShowcaseApplication;
 import ru.muravin.marketplaceshowcase.TestcontainersConfiguration;
 import ru.muravin.marketplaceshowcase.models.Cart;
+import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.models.User;
 import ru.muravin.marketplaceshowcase.repositories.*;
@@ -89,24 +92,28 @@ public class ProductControllerTest {
     }
     @Test
     void changeCartItemQuantityTest() throws Exception {
-        /*
-        CartItem cartItem = new CartItem(productsRepository.findAll().get(0),cartsRepository.findAll().get(0));
-        cartItem.setQuantity(5);
-        var productId = cartItem.getProduct().getId();
-        cartItemRepository.save(cartItem);
 
-        mockMvc.perform(post("/products/changeCartItemQuantity/"+productId)
-                        .param("action","plus"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/products"));
-        cartItem = cartItemRepository.findAll().get(0);
+        var product = productsReactiveRepository.findAll().blockFirst();
+        var cart = cartsReactiveRepository.findAll().blockFirst();
+        CartItem cartItem = new CartItem(product,cart);
+        cartItem.setQuantity(5);
+        var productId = cartItem.getProductId();
+        cartItemsReactiveRepository.save(cartItem).block();
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("action", "plus");
+
+        webTestClient.post().uri("/products/changeCartItemQuantity/"+productId).bodyValue(formData).exchange()
+                .expectStatus().is3xxRedirection().expectHeader().location("/products");
+        cartItem = cartItemsReactiveRepository.findAll().blockFirst();
         assertEquals(6, cartItem.getQuantity());
-        mockMvc.perform(post("/products/changeCartItemQuantity/"+productId)
-                        .param("action","minus"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/products"));
-        cartItem = cartItemRepository.findAll().get(0);
-        assertEquals(5, cartItem.getQuantity());*/
+
+        MultiValueMap<String, String> formData2 = new LinkedMultiValueMap<>();
+        formData.add("action", "minus");
+        webTestClient.post().uri("/products/changeCartItemQuantity/"+productId).bodyValue(formData2).exchange()
+                .expectStatus().is3xxRedirection().expectHeader().location("/products");
+        cartItem = cartItemsReactiveRepository.findAll().blockFirst();
+        assertEquals(5, cartItem.getQuantity());
     }
     @Test
     void getItemPage() throws Exception {
