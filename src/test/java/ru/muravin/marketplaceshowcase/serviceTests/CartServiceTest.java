@@ -1,20 +1,25 @@
 package ru.muravin.marketplaceshowcase.serviceTests;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.MarketplaceShowcaseApplication;
 import ru.muravin.marketplaceshowcase.TestcontainersConfiguration;
+import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
+import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownCartException;
 import ru.muravin.marketplaceshowcase.models.Cart;
 import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.repositories.CartItemsReactiveRepository;
 import ru.muravin.marketplaceshowcase.repositories.CartsReactiveRepository;
+import ru.muravin.marketplaceshowcase.repositories.ProductsReactiveRepository;
 import ru.muravin.marketplaceshowcase.services.CartService;
 
 import static org.hamcrest.Matchers.any;
@@ -29,126 +34,153 @@ public class CartServiceTest {
 
     @MockitoBean(reset = MockReset.BEFORE)
     private CartItemsReactiveRepository cartItemsReactiveRepository;
-
     @MockitoBean(reset = MockReset.BEFORE)
     private CartsReactiveRepository cartsReactiveRepository;
-/*
-    @MockitoBean(reset= MockReset.BEFORE)
-    ProductsRepository productsRepository;*/
+    @MockitoBean(reset = MockReset.BEFORE)
+    private ProductsReactiveRepository productsReactiveRepository;
 
-
-    /*
     @Test
     void addCartItemTest() {
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
-        //when(productsRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productsReactiveRepository.findById(1L)).thenReturn(Mono.just(product));
         var cart = new Cart();
         cart.setId(1L);
-        //when(cartsRepository.findById(1L)).thenReturn(Optional.of(cart));
+        when(cartsReactiveRepository.findById(1L)).thenReturn(Mono.just(cart));
 
         CartItem cartItem = new CartItem();
-        cartItem.setCart(cart);
-        cartItem.setProduct(product);
+        cartItem.setCartId(cart.getId());
+        cartItem.setProductId(product.getId());
         cartItem.setQuantity(1);
         cartItem.setId(1L);
-        //when(cartsRepository.findAll()).thenReturn(List.of(cart));
-        //when(cartItemRepository.findByProductAndCart(product,cart)).thenReturn(Optional.of(cartItem));
-        cartService.addCartItem(product.getId());
-        //verify(cartItemRepository, times(1)).findByProductAndCart(product,cart);
-        //verify(productsRepository, times(1)).findById(1L);
-        //verify(cartsRepository, times(1)).findAll();
-        //verify(cartItemRepository, times(1)).save(cartItem);
-        //when(cartItemRepository.findByProductAndCart(product,cart)).thenReturn(Optional.empty());
-        cartService.addCartItem(product.getId());
-        //verify(cartItemRepository, times(2)).findByProductAndCart(product,cart);
-        //verify(productsRepository, times(2)).findById(1L);
-        //verify(cartsRepository, times(2)).findAll();
-        //verify(cartItemRepository, times(2)).save(any(cartItem.getClass()));
+        when(cartsReactiveRepository.findAll()).thenReturn(Flux.just(cart));
+        when(cartItemsReactiveRepository.findByProductIdAndCartId(product.getId(),cart.getId())).thenReturn(Mono.just(cartItem));
+        when(cartItemsReactiveRepository.delete(cartItem)).thenReturn(Mono.empty());
+        when(cartItemsReactiveRepository.save(ArgumentMatchers.any())).thenReturn(Mono.just(cartItem));
+        when(cartItemsReactiveRepository.save(cartItem)).thenReturn(Mono.just(cartItem));
+        cartService.addCartItem(product.getId()).block();
+        verify(cartItemsReactiveRepository, times(1)).findByProductIdAndCartId(product.getId(),cart.getId());
+        verify(productsReactiveRepository, times(1)).findById(1L);
+        verify(cartsReactiveRepository, times(1)).findAll();
+        verify(cartItemsReactiveRepository, times(1)).save(cartItem);
+        when(cartItemsReactiveRepository.findByProductIdAndCartId(product.getId(),cart.getId())).thenReturn(Mono.empty());
+        cartService.addCartItem(product.getId()).block();
+        verify(cartItemsReactiveRepository, times(2)).findByProductIdAndCartId(product.getId(),cart.getId());
+        verify(productsReactiveRepository, times(2)).findById(1L);
+        verify(cartsReactiveRepository, times(2)).findAll();
+        verify(cartItemsReactiveRepository, times(3)).save(argThat(cartItem1 ->
+                cartItem1.getProductId().equals(product.getId()) &&
+                        cartItem1.getCartId().equals(cart.getId())
+        ));
     }
+
     @Test
     void removeCartItemTest() {
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
-       // when(productsRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productsReactiveRepository.findById(1L)).thenReturn(Mono.just(product));
         var cart = new Cart();
         cart.setId(1L);
-        //when(cartsRepository.findById(1L)).thenReturn(Optional.of(cart));
+        when(cartsReactiveRepository.findById(1L)).thenReturn(Mono.just(cart));
 
         CartItem cartItem = new CartItem();
-        cartItem.setCart(cart);
-        cartItem.setProduct(product);
+        cartItem.setCartId(cart.getId());
+        cartItem.setProductId(product.getId());
         cartItem.setQuantity(2);
         cartItem.setId(1L);
 
-        //when(cartsRepository.findAll()).thenReturn(List.of(cart));
-        //when(cartItemRepository.findByProductAndCart(product,cart)).thenReturn(Optional.of(cartItem));
-        cartService.removeCartItem(product.getId());
-        //verify(cartItemRepository, times(1)).findByProductAndCart(product,cart);
-       // verify(productsRepository, times(1)).findById(1L);
-        //verify(cartsRepository, times(1)).findAll();
-        //verify(cartItemRepository, times(1)).save(any(CartItem.class));
-        cartService.removeCartItem(product.getId());
-        //verify(cartItemRepository, times(2)).findByProductAndCart(product,cart);
-       // verify(productsRepository, times(2)).findById(1L);
-        //verify(cartsRepository, times(2)).findAll();
-        //verify(cartItemRepository, times(1)).delete(any(CartItem.class));
+        when(productsReactiveRepository.findById(1L)).thenReturn(Mono.just(product));
+        when(cartsReactiveRepository.findAll()).thenReturn(Flux.just(cart));
+        when(cartItemsReactiveRepository.findByProductIdAndCartId(product.getId(), cart.getId())).thenReturn(Mono.just(cartItem));
+        when(cartItemsReactiveRepository.delete(cartItem)).thenReturn(Mono.empty());
+        when(cartItemsReactiveRepository.save(cartItem)).thenReturn(Mono.just(cartItem));
+        cartService.removeCartItem(product.getId()).block();
+        verify(cartItemsReactiveRepository, times(1)).findByProductIdAndCartId(product.getId(),cart.getId());
+        verify(productsReactiveRepository, times(1)).findById(1L);
+        verify(cartsReactiveRepository, times(1)).findAll();
+        verify(cartItemsReactiveRepository, times(1)).save(argThat(cartItem1 ->
+                cartItem1.getProductId().equals(product.getId()) &&
+                        cartItem1.getCartId().equals(cart.getId())
+        ));
+
+        cartService.removeCartItem(product.getId()).block();
+        verify(cartItemsReactiveRepository, times(2)).findByProductIdAndCartId(product.getId(),cart.getId());
+        verify(productsReactiveRepository, times(2)).findById(1L);
+        verify(cartsReactiveRepository, times(2)).findAll();
+        verify(cartItemsReactiveRepository, times(1)).save(argThat(cartItem1 ->
+                cartItem1.getProductId().equals(product.getId()) &&
+                        cartItem1.getCartId().equals(cart.getId())
+        ));
     }
+
+
     @Test
     void getCartByIdTest() {
         var cart = new Cart();
-       // when(cartsRepository.findById(1L)).thenReturn(Optional.of(cart));
-        var result = cartService.getCartById(1L);
-        assertNotNull(result);
-        assertEquals(cart,result);
+        cart.setId(1L);
+        when(cartsReactiveRepository.findById(1L)).thenReturn(Mono.just(cart));
+        assertEquals(cart, cartService.getCartById(1L).block());
     }
+
     @Test
     void getCartByIdTestThrowsError() {
-        //when(cartsRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(UnknownCartException.class,()->cartService.getCartById(1L));
+        when(cartsReactiveRepository.findById(1L)).thenReturn(Mono.empty());
+        cartService.getCartById(1L).doOnError(e -> assertTrue(e instanceof UnknownCartException)).block();
     }
+
     @Test
     void getCartItemsTest() {
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         var cart = new Cart();
+        cart.setId(1L);
         var cartItem = new CartItem();
-        cartItem.setCart(cart);
-        cartItem.setProduct(product);
+        cartItem.setCartId(cart.getId());
+        cartItem.setProductId(product.getId());
         cartItem.setQuantity(2);
         cartItem.setId(1L);
-        //when(cartItemRepository.findAllByCart(cart)).thenReturn(List.of(cartItem));
-        //var result = cartService.getCartItems(cart);
-        //assertNotNull(result);
-        //assertEquals(cartItem,result.getFirst());
+        var cartItemDto = new CartItemToUIDto(cartItem, new ProductToUIDto(product));
+        when(cartItemsReactiveRepository.findAllByCart_Id(cart.getId())).thenReturn(Flux.just(cartItemDto));
+        cartService.getCartItemsFlux(cart).doOnNext(next->{
+            assertNotNull(next);
+            assertEquals(cartItem, next);
+        }).blockFirst();
     }
+
     @Test
     void getCartItemsByIdTest() {
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         var cart = new Cart();
+        cart.setId(1L);
         var cartItem = new CartItem();
-        cartItem.setCart(cart);
-        cartItem.setProduct(product);
+        cartItem.setCartId(cart.getId());
+        cartItem.setProductId(product.getId());
         cartItem.setQuantity(2);
         cartItem.setId(1L);
-        //when(cartsRepository.findById(1L)).thenReturn(Optional.of(cart));
-        //when(cartItemRepository.findAllByCart(cart)).thenReturn(List.of(cartItem));
-        //var result = cartService.getCartItems(1L);
-        //assertNotNull(result);
-        //assertEquals(cartItem,result.getFirst());
+        when(productsReactiveRepository.findById(1L)).thenReturn(Mono.just(product));
+        when(cartsReactiveRepository.findById(1L)).thenReturn(Mono.just(cart));
+        when(cartItemsReactiveRepository.findAllByCart_Id(cart.getId())).thenReturn(Flux.just(new CartItemToUIDto(cartItem, new ProductToUIDto(product))));
+        cartService.getCartItemsDtoFlux(Mono.just(1L)).doOnNext(item -> assertEquals(cartItem, item.toCartItem())).blockFirst();
     }
 
     @Test
     void getCartSumTest() {
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         var cart = new Cart();
+        cart.setId(1L);
         var cartItem = new CartItem();
-        cartItem.setCart(cart);
-        cartItem.setProduct(product);
+        cartItem.setCartId(1L);
+        cartItem.setProductId(1L);
         cartItem.setQuantity(2);
         cartItem.setId(1L);
-        //when(cartsRepository.findById(1L)).thenReturn(Optional.of(cart));
-        //when(cartItemRepository.findAllByCart(cart)).thenReturn(List.of(cartItem,cartItem));
-        //assertEquals(100d, cartService.getCartSum(1L));
+        when(productsReactiveRepository.findById(1L)).thenReturn(Mono.just(product));
+        when(cartsReactiveRepository.findById(1L)).thenReturn(Mono.just(cart));
+        when(cartItemsReactiveRepository.findAllByCart_Id(cart.getId())).thenReturn(Flux.just(
+                new CartItemToUIDto(cartItem,new ProductToUIDto(product)),
+                new CartItemToUIDto(cartItem,new ProductToUIDto(product)))
+        );
+        cartService.getCartSumFlux(Mono.just(1l)).doOnSuccess(sum -> {
+            assertEquals(100d, sum);
+        }).block();
     }
-    */
+
     @Test
     void deleteAllItemsByCartTest() {
         var cart = new Cart();
