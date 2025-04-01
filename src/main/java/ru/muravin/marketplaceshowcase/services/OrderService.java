@@ -83,8 +83,10 @@ public class OrderService {
                     .flatMap((orderItems -> {
                         var dto = new OrderToUIDto(order, orderItems);
                         dto.getOrderItems().forEach(orderItem -> {
-                            orderItem.setBase64Image(new String(orderItem.getImageBase64()));
-                            orderItem.setImageBase64(null);
+                            if (orderItem.getBase64Image() != null) {
+                                orderItem.setBase64Image(new String(orderItem.getImageBase64()));
+                                orderItem.setImageBase64(null);
+                            }
                         });
                         return Mono.just(dto);
                     }));
