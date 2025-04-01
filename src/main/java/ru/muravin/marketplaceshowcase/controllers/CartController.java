@@ -35,7 +35,7 @@ public class CartController {
         return Mono.zip(sumOfOrder, cartItems.collectList()).map(tuple -> {
             var hashMap = new HashMap<String, Object>();
             hashMap.put("cartItems", tuple.getT2());
-            hashMap.put("cartSum", tuple.getT1());
+            hashMap.put("sumOfOrder", tuple.getT1());
             return Rendering.view("cart").model(hashMap).build();
         });
     }

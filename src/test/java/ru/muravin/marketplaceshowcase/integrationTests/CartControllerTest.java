@@ -18,10 +18,12 @@ import org.springframework.web.context.WebApplicationContext;
 import ru.muravin.marketplaceshowcase.MarketplaceShowcaseApplication;
 import ru.muravin.marketplaceshowcase.TestcontainersConfiguration;
 import ru.muravin.marketplaceshowcase.models.Cart;
+import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.models.User;
 import ru.muravin.marketplaceshowcase.repositories.*;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -71,21 +73,20 @@ public class CartControllerTest {
     @Test
     void addItemToCartTest() throws Exception {
         var product = productsReactiveRepository.findAll().blockFirst();
-        webTestClient.post().uri("/products/changeCartItemQuantity/"+product.getId()).exchange().expectStatus().is3xxRedirection().expectHeader().location("/products");
+        webTestClient.post().uri("/products/cart/changeCartItemQuantity/"+product.getId()).exchange().expectStatus().is3xxRedirection().expectHeader().location("/cart");
     }
     @Test
     void showCartTest() throws Exception {
-        /*
-        //CartItem cartItem = new CartItem(productsRepository.findAll().get(0),cartsRepository.findAll().get(0));
+        var product = productsReactiveRepository.findAll().blockFirst();
+        var cart = cartsReactiveRepository.findAll().blockFirst();
+        CartItem cartItem = new CartItem(product,cart);
         cartItem.setQuantity(5);
-        cartItemRepository.save(cartItem);
-        mockMvc.perform(get("/cart"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType("text/html;charset=UTF-8"))
-                .andExpect(content().string(containsString("125")))
-                .andExpect(content().string(containsString("iphone")));
+        cartItemsReactiveRepository.save(cartItem).block();
 
-         */
-
+        webTestClient.get().uri("/cart").exchange().expectStatus().isOk().expectHeader().contentType("text/html")
+                .expectBody(String.class).value(body -> {
+                    assertTrue(body.contains("125"));
+                    assertTrue(body.contains("iphone"));
+                });
     }
 }
