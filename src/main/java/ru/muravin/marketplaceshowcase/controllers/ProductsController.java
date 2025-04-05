@@ -18,6 +18,7 @@ import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 import ru.muravin.marketplaceshowcase.services.CartService;
 import ru.muravin.marketplaceshowcase.services.ProductsCSVService;
 import ru.muravin.marketplaceshowcase.services.ProductsService;
+import ru.muravin.marketplaceshowcase.services.RedisCacheService;
 
 import java.io.*;
 import java.util.*;
@@ -28,12 +29,14 @@ public class ProductsController {
     private final ProductsService productsService;
     private final CartService cartService;
     private final ProductsCSVService productsCSVService;
+    private final RedisCacheService redisCacheService;
 
     @Autowired
-    public ProductsController(ProductsService productsService, CartService cartService, ProductsCSVService productsCSVService){
+    public ProductsController(ProductsService productsService, CartService cartService, ProductsCSVService productsCSVService, RedisCacheService redisCacheService){
         this.productsService = productsService;
         this.cartService = cartService;
         this.productsCSVService = productsCSVService;
+        this.redisCacheService = redisCacheService;
     }
 
     @GetMapping(produces = MediaType.TEXT_HTML_VALUE + ";charset=UTF-8")
@@ -85,6 +88,7 @@ public class ProductsController {
 
     @PostMapping(value = "/changeCartItemQuantity/{id}")
     public Mono<Rendering> changeCartItemQuantity(@PathVariable(name = "id") Integer itemId, ServerWebExchange exchange) {
+        redisCacheService.evictCache().subscribe();
         return exchange.getFormData().flatMap(data->{
             if (Objects.equals(data.getFirst("action"), "plus")) {
                 return cartService.addCartItem(itemId.longValue())
@@ -99,6 +103,7 @@ public class ProductsController {
     public Mono<Rendering> changeCartItemQuantityAndShowItem(
             @PathVariable(name = "id") Integer itemId,
             ServerWebExchange exchange) {
+        redisCacheService.evictCache().subscribe();
         return exchange.getFormData().flatMap(data->{
             if (Objects.equals(data.getFirst("action"), "plus")) {
                 return cartService.addCartItem(itemId.longValue())
@@ -113,9 +118,11 @@ public class ProductsController {
     public Mono<Rendering> changeCartItemQuantityAndShowCart(@PathVariable(name = "id") Integer itemId, ServerWebExchange exchange) {
         return exchange.getFormData().flatMap(data->{
             if (Objects.equals(data.getFirst("action"), "plus")) {
+                redisCacheService.evictCache().subscribe();
                 return cartService.addCartItem(itemId.longValue())
                         .then(Mono.just(Rendering.redirectTo("/cart").build()));
             } else {
+                redisCacheService.evictCache().subscribe();
                 return cartService.removeCartItem(itemId.longValue())
                         .then(Mono.just(Rendering.redirectTo("/cart").build()));
             }

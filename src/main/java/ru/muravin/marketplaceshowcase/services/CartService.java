@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownProductException;
@@ -92,6 +93,15 @@ public class CartService {
         return cartItemsReactiveRepository.findByProductIdAndCartId(productId, cartId);
     }
     public Flux<CartItemToUIDto> getCartItemsDtoFlux(Mono<Long> cartId) {
+        return redisCacheService.getCartItemsCache(String.valueOf(cartId.subscribe())).switchIfEmpty(
+            getCartItemsDtoFluxFromRepo(cartId).collectList().publishOn(Schedulers.boundedElastic()).flatMap(a -> {
+                redisCacheService.setCartItemsCache(String.valueOf(cartId), a).subscribe();
+                return Mono.just(a);
+            }).flatMapMany(Flux::fromIterable)
+        );
+    }
+
+    public Flux<CartItemToUIDto> getCartItemsDtoFluxFromRepo(Mono<Long> cartId) {
         return getCartItemsFlux(cartId).flatMap(cartItem -> {
             return productsReactiveRepository.findById(cartItem.getProductId()).zipWith(Mono.just(cartItem));
         }).map(tuple-> {
