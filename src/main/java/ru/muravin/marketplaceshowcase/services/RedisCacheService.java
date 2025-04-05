@@ -40,6 +40,16 @@ public class RedisCacheService {
         });
     }
 
+    public Mono<Boolean> setProductCache(ProductToUIDto product) {
+        return reactiveRedisTemplate.opsForValue().set(
+                getKeyForProduct(String.valueOf(product.getId())), product, REDIS_KEY_PRODUCTS_DURATION
+        );
+    }
+
+    public Mono<ProductToUIDto> getProductCache(Long productId) {
+        return reactiveRedisTemplate.opsForValue().get(getKeyForProduct(String.valueOf(productId)));
+    }
+
     public Flux<ProductToUIDto> getProductsListCache(String nameFilter, String sort, Integer limit, Integer offset) {
         ReactiveListOperations<String, ProductToUIDto> listOperations = reactiveRedisTemplate.opsForList();
         return listOperations.range(getKeyForProductsList(nameFilter, sort, limit, offset), 0, -1);
@@ -59,6 +69,9 @@ public class RedisCacheService {
 
     private static String getKeyForProductsList(String nameFilter, String sort, Integer limit, Integer offset) {
         return REDIS_KEY_PRODUCTS + ":products_list:" + nameFilter + ":" + limit + ":" + offset + ":" + sort;
+    }
+    private String getKeyForProduct(String productId) {
+        return REDIS_KEY_PRODUCTS + ":product:" + productId;
     }
 
     public Mono<Long> evictCache() {

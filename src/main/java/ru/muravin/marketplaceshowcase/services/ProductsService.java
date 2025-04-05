@@ -60,15 +60,6 @@ public class ProductsService {
         return getProductToUIDtoFlux(productFlux);
     }
 
-    private Flux<ProductToUIDto> getProductToUIDtoFlux(Flux<Product> productFlux) {
-        var products = productFlux.map(ProductToUIDto::new).collectList();
-        var cartItems = cartService.getCartItemsFlux(cartService.getFirstCartIdMono()).collectList();
-        return Mono.zip(products, cartItems).flatMapMany(tuple -> {
-            enrichDtoListWithCartQuantities(tuple.getT1(), tuple.getT2());
-            return Flux.fromIterable(tuple.getT1());
-        });
-    }
-
     public Mono<Void> save(ProductToUIDto productToUIDto) {
         return productsReactiveRepository.save(productToUIDto.transformToProduct()).doOnError(System.out::println).then();
     }
@@ -118,6 +109,15 @@ public class ProductsService {
     }
 
     public Mono<ProductToUIDto> findById(Long id) {
+        return redisCacheService.getProductCache(id).switchIfEmpty(
+            findByIdFromRepo(id).flatMap(product -> {
+                redisCacheService.setProductCache(product).subscribe();
+                return Mono.just(product);
+            })
+        );
+    }
+
+    private Mono<ProductToUIDto> findByIdFromRepo(Long id) {
         // Поток для продукта
         var productMono = productsReactiveRepository.findById(id)
                 .map(ProductToUIDto::new) // Преобразуем Product в ProductToUIDto
@@ -152,6 +152,15 @@ public class ProductsService {
             if (productsMap.containsKey(cartItem.getProductId())) {
                 ((ProductToUIDto)productsMap.get(cartItem.getProductId())).setQuantityInCart(cartItem.getQuantity());
             }
+        });
+    }
+
+    private Flux<ProductToUIDto> getProductToUIDtoFlux(Flux<Product> productFlux) {
+        var products = productFlux.map(ProductToUIDto::new).collectList();
+        var cartItems = cartService.getCartItemsFlux(cartService.getFirstCartIdMono()).collectList();
+        return Mono.zip(products, cartItems).flatMapMany(tuple -> {
+            enrichDtoListWithCartQuantities(tuple.getT1(), tuple.getT2());
+            return Flux.fromIterable(tuple.getT1());
         });
     }
 
