@@ -17,52 +17,58 @@ public class CartService {
     private final ProductsReactiveRepository productsReactiveRepository;
     private final CartsReactiveRepository cartsReactiveRepository;
     private final CartItemsReactiveRepository cartItemsReactiveRepository;
+    private final RedisCacheService redisCacheService;
 
 
     @Autowired
     public CartService(CartsReactiveRepository cartsReactiveRepository,
                        CartItemsReactiveRepository cartItemsReactiveRepository,
-                       ProductsReactiveRepository productsReactiveRepository) {
+                       ProductsReactiveRepository productsReactiveRepository, RedisCacheService redisCacheService) {
         this.cartsReactiveRepository = cartsReactiveRepository;
         this.cartItemsReactiveRepository = cartItemsReactiveRepository;
         this.productsReactiveRepository = productsReactiveRepository;
+        this.redisCacheService = redisCacheService;
     }
 
     public Mono<Void> addCartItem(Long productId) {
-        var productMono = productsReactiveRepository.findById(productId);
-        productMono = productMono.switchIfEmpty(Mono.error(() -> new UnknownProductException("Product "+productId+" not found")));
-        return productMono.zipWith(getFirstCartIdMono()).flatMap(
-            tuple -> {
-                var product = tuple.getT1();
-                var cartId = tuple.getT2();
-                return cartItemsReactiveRepository.findByProductIdAndCartId(product.getId(), cartId)
-                        .flatMap(cartItem -> {
-                            cartItem.setQuantity(cartItem.getQuantity() + 1);
-                            return cartItemsReactiveRepository.save(cartItem);
-                        })
-                        .switchIfEmpty(cartItemsReactiveRepository.save(new CartItem(productId,cartId)));
-            }
-        ).then();
+        return redisCacheService.evictCartCache().flatMap(unused -> {
+            var productMono = productsReactiveRepository.findById(productId);
+            productMono = productMono.switchIfEmpty(Mono.error(() -> new UnknownProductException("Product "+productId+" not found")));
+            return productMono.zipWith(getFirstCartIdMono()).flatMap(
+                    tuple -> {
+                        var product = tuple.getT1();
+                        var cartId = tuple.getT2();
+                        return cartItemsReactiveRepository.findByProductIdAndCartId(product.getId(), cartId)
+                                .flatMap(cartItem -> {
+                                    cartItem.setQuantity(cartItem.getQuantity() + 1);
+                                    return cartItemsReactiveRepository.save(cartItem);
+                                })
+                                .switchIfEmpty(cartItemsReactiveRepository.save(new CartItem(productId,cartId)));
+                    }
+            ).then();
+        });
     }
 
     public Mono<Void> removeCartItem(Long productId) {
-        var productMono = productsReactiveRepository.findById(productId);
-        productMono = productMono.switchIfEmpty(Mono.error(() -> new UnknownProductException("Product "+productId+" not found")));
-        return productMono.zipWith(getFirstCartIdMono()).flatMap(
-                tuple -> {
-                    var product = tuple.getT1();
-                    var cartId = tuple.getT2();
-                    return cartItemsReactiveRepository.findByProductIdAndCartId(product.getId(), cartId);
+        return redisCacheService.evictCartCache().flatMap(unused -> {
+            var productMono = productsReactiveRepository.findById(productId);
+            productMono = productMono.switchIfEmpty(Mono.error(() -> new UnknownProductException("Product "+productId+" not found")));
+            return productMono.zipWith(getFirstCartIdMono()).flatMap(
+                    tuple -> {
+                        var product = tuple.getT1();
+                        var cartId = tuple.getT2();
+                        return cartItemsReactiveRepository.findByProductIdAndCartId(product.getId(), cartId);
+                    }
+            ).flatMap(cartItem -> {
+                if (cartItem == null) return Mono.fromCallable(()->null);
+                cartItem.setQuantity(cartItem.getQuantity() - 1);
+                if (cartItem.getQuantity() == 0) {
+                    return cartItemsReactiveRepository.delete(cartItem);
+                } else {
+                    return cartItemsReactiveRepository.save(cartItem);
                 }
-        ).flatMap(cartItem -> {
-            if (cartItem == null) return Mono.fromCallable(()->null);
-            cartItem.setQuantity(cartItem.getQuantity() - 1);
-            if (cartItem.getQuantity() == 0) {
-                return cartItemsReactiveRepository.delete(cartItem);
-            } else {
-                return cartItemsReactiveRepository.save(cartItem);
-            }
-        }).then();
+            }).then();
+        });
     }
 
     public Mono<Cart> getCartById(long id) {

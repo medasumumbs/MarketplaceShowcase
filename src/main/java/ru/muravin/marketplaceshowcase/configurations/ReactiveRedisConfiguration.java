@@ -10,8 +10,10 @@ import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.serializer.*;
+import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
 import ru.muravin.marketplaceshowcase.dto.ProductCacheDto;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
+import ru.muravin.marketplaceshowcase.models.Cart;
 
 import java.util.List;
 
@@ -45,6 +47,26 @@ public class ReactiveRedisConfiguration {
         // Настройка контекста сериализации
         RedisSerializationContext<String, Long> serializationContext = RedisSerializationContext
                 .<String, Long>newSerializationContext(new StringRedisSerializer())
+                .value(serializer) // Используем сериализатор для значений
+                .build();
+
+        return new ReactiveRedisTemplate<>(factory, serializationContext);
+    }
+
+    @Bean
+    public ReactiveRedisTemplate<String, CartItemToUIDto> reactiveRedisTemplateForCartItems(ReactiveRedisConnectionFactory factory) {
+        // Настройка ObjectMapper для работы с JSON
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        // (Опционально) Добавление модулей или настройка ObjectMapper
+        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+        // Создаем сериализатор для списка CartItemToUIDto
+        var serializer = new Jackson2JsonRedisSerializer<>(objectMapper, CartItemToUIDto.class);
+        // Настройка контекста сериализации
+        RedisSerializationContext<String, CartItemToUIDto> serializationContext = RedisSerializationContext
+                .<String, CartItemToUIDto>newSerializationContext(new StringRedisSerializer())
                 .value(serializer) // Используем сериализатор для значений
                 .build();
 

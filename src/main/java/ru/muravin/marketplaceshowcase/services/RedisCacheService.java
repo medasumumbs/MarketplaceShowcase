@@ -5,6 +5,8 @@ import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 
 import java.time.Duration;
@@ -16,14 +18,17 @@ public class RedisCacheService {
 
     private final ReactiveRedisTemplate<String, Long> reactiveRedisTemplateForLongValues;
 
+    private final ReactiveRedisTemplate<String, CartItemToUIDto> reactiveRedisTemplateForCartItems;
+
     private static final String REDIS_KEY_PRODUCTS = "products";
 
     private static final Duration REDIS_KEY_PRODUCTS_DURATION = Duration.ofSeconds(30);
 
     @Autowired
-    public RedisCacheService(ReactiveRedisTemplate<String, ProductToUIDto> redisTemplate, ReactiveRedisTemplate<String, Long> reactiveRedisTemplateForLongValues) {
+    public RedisCacheService(ReactiveRedisTemplate<String, ProductToUIDto> redisTemplate, ReactiveRedisTemplate<String, Long> reactiveRedisTemplateForLongValues, ReactiveRedisTemplate<String, CartItemToUIDto> reactiveRedisTemplateForCartItems) {
         this.reactiveRedisTemplate = redisTemplate;
         this.reactiveRedisTemplateForLongValues = reactiveRedisTemplateForLongValues;
+        this.reactiveRedisTemplateForCartItems = reactiveRedisTemplateForCartItems;
     }
 
     public Mono<Long> setProductsListCache(String nameFilter,
@@ -72,6 +77,27 @@ public class RedisCacheService {
     }
     private String getKeyForProduct(String productId) {
         return REDIS_KEY_PRODUCTS + ":product:" + productId;
+    }
+
+    public Mono<Long> setCartItemsCache(String cartId, List<CartItemToUIDto> list) {
+        if (list == null || list.isEmpty()) return Mono.empty();
+        return reactiveRedisTemplateForCartItems.opsForList().leftPushAll(getKeyForCartItems(cartId), list)
+                .publishOn(Schedulers.boundedElastic()).flatMap(longVal -> {
+            reactiveRedisTemplateForCartItems.expire(getKeyForCartItems(cartId), REDIS_KEY_PRODUCTS_DURATION).subscribe();
+            return Mono.just(longVal);
+        });
+    }
+
+    public Flux<CartItemToUIDto> getCartItemsCache(String cartId) {
+        return reactiveRedisTemplateForCartItems.opsForList().range(getKeyForCartItems(cartId), 0, -1);
+    }
+
+    private String getKeyForCartItems(String cartId) {
+        return REDIS_KEY_PRODUCTS + ":cart:" + cartId;
+    }
+
+    public Mono<Long> evictCartCache() {
+        return reactiveRedisTemplate.delete(getKeyForCartItems("1"));
     }
 
     public Mono<Long> evictCache() {

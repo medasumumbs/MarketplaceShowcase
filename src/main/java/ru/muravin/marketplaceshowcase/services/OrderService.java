@@ -30,13 +30,15 @@ public class OrderService {
     private final CartService cartService;
     private final OrderItemsReactiveRepository orderItemsReactiveRepository;
     private final CartItemsReactiveRepository cartItemsReactiveRepository;
+    private final RedisCacheService redisCacheService;
 
-    public OrderService(OrderReactiveRepository orderReactiveRepository, UserReactiveRepository userReactiveRepository, CartService cartService, OrderItemsReactiveRepository orderItemsReactiveRepository, CartItemsReactiveRepository cartItemsReactiveRepository) {
+    public OrderService(OrderReactiveRepository orderReactiveRepository, UserReactiveRepository userReactiveRepository, CartService cartService, OrderItemsReactiveRepository orderItemsReactiveRepository, CartItemsReactiveRepository cartItemsReactiveRepository, RedisCacheService redisCacheService) {
         this.orderReactiveRepository = orderReactiveRepository;
         this.userReactiveRepository = userReactiveRepository;
         this.cartService = cartService;
         this.orderItemsReactiveRepository = orderItemsReactiveRepository;
         this.cartItemsReactiveRepository = cartItemsReactiveRepository;
+        this.redisCacheService = redisCacheService;
     }
 
     @Transactional
@@ -54,7 +56,9 @@ public class OrderService {
                         System.out.println(entities);
                         return orderItemsReactiveRepository.saveAll(entities).then();
                     })
-                    .then(cartService.deleteAllItemsByCart(cart)).then(Mono.just(order));
+                    .then(cartService.deleteAllItemsByCart(cart))
+                    .then(redisCacheService.evictCartCache())
+                    .then(Mono.just(order));
         });
     }
 
