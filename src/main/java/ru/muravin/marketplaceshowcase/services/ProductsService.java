@@ -36,8 +36,7 @@ public class ProductsService {
                 .switchIfEmpty(findAllWithCache(offset,pageSize,sort));
     }
 
-    private Flux<ProductToUIDto> findAllWithCache(int pageNumber, int pageSize, String sort) {
-        int offset = pageNumber * pageSize;
+    private Flux<ProductToUIDto> findAllWithCache(int offset, int pageSize, String sort) {
         return findAllFromRepo(offset, pageSize, sort).collectList().publishOn(Schedulers.boundedElastic()).doOnSuccess(
             list -> {
                redisCacheService.setProductsListCache(null,sort,pageSize,offset,list).subscribe();

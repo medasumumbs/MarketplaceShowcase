@@ -7,6 +7,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 
+import java.time.Duration;
 import java.util.List;
 
 @Service
@@ -16,6 +17,8 @@ public class RedisCacheService {
     private final ReactiveRedisTemplate<String, Long> reactiveRedisTemplateForLongValues;
 
     private static final String REDIS_KEY_PRODUCTS = "products";
+
+    private static final Duration REDIS_KEY_PRODUCTS_DURATION = Duration.ofSeconds(30);
 
     @Autowired
     public RedisCacheService(ReactiveRedisTemplate<String, ProductToUIDto> redisTemplate, ReactiveRedisTemplate<String, Long> reactiveRedisTemplateForLongValues) {
@@ -31,7 +34,10 @@ public class RedisCacheService {
         if (values == null || values.isEmpty()) return Mono.empty();
         ReactiveListOperations<String, ProductToUIDto> listOperations = reactiveRedisTemplate.opsForList();
         var key = getKeyForProductsList(nameFilter, sort, limit, offset);
-        return listOperations.leftPushAll(key, values);
+        return listOperations.leftPushAll(key, values).flatMap(a -> {
+            reactiveRedisTemplate.expire(key, REDIS_KEY_PRODUCTS_DURATION).block();
+            return Mono.just(a);
+        });
     }
 
     public Flux<ProductToUIDto> getProductsListCache(String nameFilter, String sort, Integer limit, Integer offset) {
@@ -40,7 +46,7 @@ public class RedisCacheService {
     }
     public Mono<Boolean> setProductsCount(String nameFilter, Long value) {
         var opsForValue = reactiveRedisTemplateForLongValues.opsForValue();
-        return opsForValue.set(getKeyForProductsCount(nameFilter), value);
+        return opsForValue.set(getKeyForProductsCount(nameFilter), value, REDIS_KEY_PRODUCTS_DURATION);
     }
     public Mono<Long> getProductsCount(String nameFilter) {
         var opsForValue = reactiveRedisTemplateForLongValues.opsForValue();
