@@ -9,10 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
-import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
-import org.springframework.data.redis.serializer.RedisSerializationContext;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.data.redis.serializer.*;
 import ru.muravin.marketplaceshowcase.dto.ProductCacheDto;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 
@@ -36,6 +33,18 @@ public class ReactiveRedisConfiguration {
         // Настройка контекста сериализации
         RedisSerializationContext<String, ProductToUIDto> serializationContext = RedisSerializationContext
                 .<String, ProductToUIDto>newSerializationContext(new StringRedisSerializer())
+                .value(serializer) // Используем сериализатор для значений
+                .build();
+
+        return new ReactiveRedisTemplate<>(factory, serializationContext);
+    }
+    // Настройка ReactiveRedisTemplate для чисел Long
+    @Bean
+    public ReactiveRedisTemplate<String, Long> reactiveRedisTemplateForLongValues(ReactiveRedisConnectionFactory factory) {
+        var serializer = new GenericToStringSerializer<>(Long.class);
+        // Настройка контекста сериализации
+        RedisSerializationContext<String, Long> serializationContext = RedisSerializationContext
+                .<String, Long>newSerializationContext(new StringRedisSerializer())
                 .value(serializer) // Используем сериализатор для значений
                 .build();
 

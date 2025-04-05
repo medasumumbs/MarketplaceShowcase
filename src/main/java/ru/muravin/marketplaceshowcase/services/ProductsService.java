@@ -74,13 +74,28 @@ public class ProductsService {
         return productsReactiveRepository.save(productToUIDto.transformToProduct()).doOnError(System.out::println).then();
     }
     public Mono<Long> countAll() {
-        return productsReactiveRepository.count();
+        return redisCacheService.getProductsCount(null).switchIfEmpty(
+            productsReactiveRepository.count().flatMap(count -> {
+                redisCacheService.setProductsCount(null, count).subscribe();
+                return Mono.just(count);
+            }));
+    }
+    public Flux<ProductToUIDto> findByNameLike(String search, PageRequest pageRequest, String sort) {
+        int offset = pageRequest.getPageNumber() * pageRequest.getPageSize();
+        int limit = pageRequest.getPageSize();
+        return redisCacheService.getProductsListCache(search, sort, limit, offset)
+                .switchIfEmpty(findByNameLikeWithCache(search,limit,offset,sort));
     }
 
-    public Flux<ProductToUIDto> findByNameLike(String search, PageRequest pageRequest, String sort) {
+    private Flux<ProductToUIDto> findByNameLikeWithCache(String search, int limit, int offset, String sort) {
+        return findByNameLikeFromRepo(search, limit, offset, sort).collectList().publishOn(Schedulers.boundedElastic()).doOnSuccess(
+                list -> {
+                    redisCacheService.setProductsListCache(search,sort,limit,offset,list).subscribe();
+                }
+        ).flatMapMany(Flux::fromIterable);
+    }
+    public Flux<ProductToUIDto> findByNameLikeFromRepo(String search, int limit, int offset, String sort) {
         Flux<Product> productFlux;
-        var limit = pageRequest.getPageSize();
-        var offset = pageRequest.getPageSize() * pageRequest.getPageNumber();
         if (sort != null && !sort.isEmpty()) {
             if (sort.equalsIgnoreCase("name")) {
                 productFlux = productsReactiveRepository.findByNameLikeSortByName(search, limit, offset);
@@ -95,7 +110,12 @@ public class ProductsService {
         return getProductToUIDtoFlux(productFlux);
     }
     public Mono<Long> countByNameLike(String search) {
-        return productsReactiveRepository.countByNameContainingIgnoreCase(search);
+        return redisCacheService.getProductsCount(search).switchIfEmpty(
+            productsReactiveRepository.countByNameContainingIgnoreCase(search).flatMap(count -> {
+                redisCacheService.setProductsCount(search, count).subscribe();
+                return Mono.just(count);
+            })
+        );
     }
 
     public Mono<ProductToUIDto> findById(Long id) {

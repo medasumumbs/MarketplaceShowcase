@@ -22,11 +22,13 @@ import java.util.List;
 public class ProductsCSVService {
 
     private final ProductsService productsService;
+    private final RedisCacheService redisCacheService;
 
     private int productsSize;
     @Autowired
-    public ProductsCSVService(ProductsService productsService) {
+    public ProductsCSVService(ProductsService productsService, RedisCacheService redisCacheService) {
         this.productsService = productsService;
+        this.redisCacheService = redisCacheService;
     }
 
     public Mono<String> uploadCSV(byte[] csvFile) {
@@ -52,7 +54,10 @@ public class ProductsCSVService {
 
                         List<ProductToUIDto> products = csvToBean.parse();
                         productsSize = products.size();
-                        return productsService.saveAll(products).thenReturn("Импорт завершен успешно, продуктов импортировано: " + productsSize);
+                        return redisCacheService.evictCache().flatMap(a -> {
+                            return productsService.saveAll(products)
+                                    .thenReturn("Импорт завершен успешно, продуктов импортировано: " + productsSize);
+                        });
                     } catch (IOException | CsvValidationException e) {
                         e.printStackTrace();
                         return Mono.error(e); // Передаем ошибку дальше
