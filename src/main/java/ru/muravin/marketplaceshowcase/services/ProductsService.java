@@ -5,6 +5,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+import ru.muravin.marketplaceshowcase.dto.ProductCacheDto;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownProductException;
 import ru.muravin.marketplaceshowcase.models.CartItem;
@@ -19,14 +21,30 @@ public class ProductsService {
     private final CartService cartService;
 
     private final ProductsReactiveRepository productsReactiveRepository;
+    private final RedisCacheService redisCacheService;
 
     @Autowired
-    public ProductsService(ProductsReactiveRepository productsReactiveRepository, CartService cartService) {
+    public ProductsService(ProductsReactiveRepository productsReactiveRepository, CartService cartService, RedisCacheService redisCacheService) {
         this.productsReactiveRepository = productsReactiveRepository;
         this.cartService = cartService;
+        this.redisCacheService = redisCacheService;
     }
-    public Flux<ProductToUIDto> findAll(PageRequest pageRequest, int pageNumber, int pageSize, String sort) {
+
+    public Flux<ProductToUIDto> findAll(int pageNumber, int pageSize, String sort) {
         int offset = pageNumber * pageSize;
+        return redisCacheService.getProductsListCache(null, sort, pageSize, offset)
+                .switchIfEmpty(findAllWithCache(offset,pageSize,sort));
+    }
+
+    private Flux<ProductToUIDto> findAllWithCache(int pageNumber, int pageSize, String sort) {
+        int offset = pageNumber * pageSize;
+        return findAllFromRepo(offset, pageSize, sort).collectList().publishOn(Schedulers.boundedElastic()).doOnSuccess(
+            list -> {
+               redisCacheService.setProductsListCache(null,sort,pageSize,offset,list).subscribe();
+            }
+        ).flatMapMany(Flux::fromIterable);
+    }
+    private Flux<ProductToUIDto> findAllFromRepo( int offset, int pageSize, String sort) {
         Flux<Product> productFlux;
         if (sort == null || sort.isEmpty()) {
             productFlux = productsReactiveRepository.findAll(pageSize, offset);
@@ -53,7 +71,7 @@ public class ProductsService {
     }
 
     public Mono<Void> save(ProductToUIDto productToUIDto) {
-        return productsReactiveRepository.save(productToUIDto.transformToProduct()).doOnError(e->System.out.println(e)).then();
+        return productsReactiveRepository.save(productToUIDto.transformToProduct()).doOnError(System.out::println).then();
     }
     public Mono<Long> countAll() {
         return productsReactiveRepository.count();
@@ -119,7 +137,7 @@ public class ProductsService {
     }
 
     public Mono<Void> saveAll(List<ProductToUIDto> products) {
-        var productsEntities = products.stream().map((dto)->dto.transformToProduct()).toList();
+        var productsEntities = products.stream().map(ProductToUIDto::transformToProduct).toList();
         return productsReactiveRepository.saveAll(productsEntities).then();
     }
 }

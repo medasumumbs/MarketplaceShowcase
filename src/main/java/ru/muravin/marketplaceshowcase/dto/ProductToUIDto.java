@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import ru.muravin.marketplaceshowcase.models.Product;
 
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.Objects;
 
 @Data
@@ -31,6 +32,17 @@ public class ProductToUIDto {
                         this.setImageBase64(new String(product.getImageBase64()));
                 }
         }
+
+        public ProductToUIDto(LinkedHashMap<Object, Object> eachItem) {
+                var productToUIDto = new ProductToUIDto();
+                productToUIDto.setId(((Integer) eachItem.get("id")).longValue());
+                productToUIDto.setName((String)eachItem.get("name"));
+                productToUIDto.setDescription((String)eachItem.get("description"));
+                productToUIDto.setPrice((Double) eachItem.get("price"));
+                productToUIDto.setQuantityInCart((Integer) eachItem.get("quantityInCart"));
+                productToUIDto.setImageBase64((String) eachItem.get("imageBase64"));
+        }
+
         public Product transformToProduct() {
                 Product product = new Product();
                 BeanUtils.copyProperties(this, product);

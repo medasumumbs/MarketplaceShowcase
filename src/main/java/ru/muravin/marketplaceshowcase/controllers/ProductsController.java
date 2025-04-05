@@ -58,7 +58,7 @@ public class ProductsController {
         if ((search != null) && (!search.isEmpty())) {
             productsFlux = productsService.findByNameLike(search, pageRequest, sortingColumn);
         } else {
-            productsFlux = productsService.findAll(pageRequest, pageRequest.getPageNumber(), pageRequest.getPageSize(), sortingColumn);
+            productsFlux = productsService.findAll(pageRequest.getPageNumber(), pageRequest.getPageSize(), sortingColumn);
         }
         Mono<Long> countAllMono;
         if ((search != null) && (!search.isEmpty())) {

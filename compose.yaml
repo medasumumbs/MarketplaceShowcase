@@ -13,8 +13,19 @@ services:
     - postgres_data:/var/lib/postgresql/data
     networks:
       postgres_network:
-
+  redis:
+    image: redis:latest  # Используем официальный образ Redis
+    container_name: redis  # Имя контейнера
+    ports:
+      - "6379:6379"  # Проброс порта 6379 хоста на порт 6379 контейнера
+    restart: unless-stopped
+    volumes:
+      - redis_data:/var/lib/redis/data
+    networks:
+      - postgres_network
 networks:
   postgres_network:
+
 volumes:
   postgres_data:
+  redis_data:

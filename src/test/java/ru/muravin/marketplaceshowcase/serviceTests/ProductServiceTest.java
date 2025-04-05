@@ -65,7 +65,7 @@ public class ProductServiceTest {
         var cartItemFake = new CartItem(1l,1l);
         cartItemFake.setQuantity(0);
         when(cartService.getCartItemsFlux(any(Mono.class))).thenReturn(Flux.just(cartItemFake));
-        var realResult = productsService.findAll(pageRequest, pageRequest.getPageNumber(), pageRequest.getPageSize(), "id").toIterable();
+        var realResult = productsService.findAll(pageRequest.getPageNumber(), pageRequest.getPageSize(), "id").toIterable();
         List<ProductToUIDto> realResultParsed = new ArrayList<>();
         realResult.forEach(realResultParsed::add);
         assertNotNull(realResult);
