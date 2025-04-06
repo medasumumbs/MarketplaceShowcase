@@ -1,0 +1,5 @@
+changelogFile: liquibaseConfig/src/main/resources/liquibase/db.changelog-master.yaml
+url: jdbc:postgresql://localhost:5432/mydatabase?currentSchema=marketplace
+username: myuser
+password: secret
+driver: org.postgresql.Driver

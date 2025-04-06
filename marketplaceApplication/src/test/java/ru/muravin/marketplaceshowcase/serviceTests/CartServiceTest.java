@@ -20,6 +20,7 @@ import ru.muravin.marketplaceshowcase.repositories.CartItemsReactiveRepository;
 import ru.muravin.marketplaceshowcase.repositories.CartsReactiveRepository;
 import ru.muravin.marketplaceshowcase.repositories.ProductsReactiveRepository;
 import ru.muravin.marketplaceshowcase.services.CartService;
+import ru.muravin.marketplaceshowcase.services.RedisCacheService;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -36,9 +37,13 @@ public class CartServiceTest {
     private CartsReactiveRepository cartsReactiveRepository;
     @MockitoBean(reset = MockReset.BEFORE)
     private ProductsReactiveRepository productsReactiveRepository;
+    @MockitoBean(reset = MockReset.BEFORE)
+    private RedisCacheService redisCacheService;
 
     @Test
     void addCartItemTest() {
+        when(redisCacheService.evictCartCache()).thenReturn(Mono.just(2l));
+
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         when(productsReactiveRepository.findById(1L)).thenReturn(Mono.just(product));
         var cart = new Cart();
@@ -73,6 +78,8 @@ public class CartServiceTest {
 
     @Test
     void removeCartItemTest() {
+        when(redisCacheService.evictCartCache()).thenReturn(Mono.just(2l));
+
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         when(productsReactiveRepository.findById(1L)).thenReturn(Mono.just(product));
         var cart = new Cart();
@@ -144,6 +151,8 @@ public class CartServiceTest {
 
     @Test
     void getCartItemsByIdTest() {
+        when(redisCacheService.setCartItemsCache(any(),any())).thenReturn(Mono.just(2l));
+        when(redisCacheService.getCartItemsCache(any())).thenReturn(Flux.empty());
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         var cart = new Cart();
         cart.setId(1L);
@@ -160,6 +169,8 @@ public class CartServiceTest {
 
     @Test
     void getCartSumTest() {
+        when(redisCacheService.setCartItemsCache(any(),any())).thenReturn(Mono.just(2l));
+        when(redisCacheService.getCartItemsCache(any())).thenReturn(Flux.empty());
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         var cart = new Cart();
         cart.setId(1L);
