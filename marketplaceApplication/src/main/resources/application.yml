@@ -31,9 +31,10 @@ spring:
                 format_sql: true
     liquibase:
         url: jdbc:postgresql://localhost:5432/mydatabase?currentSchema=marketplace
-        change-log: classpath:/liquibase/db.changelog-master.xml
+        change-log: classpath:liquibase/db.changelog-master.xml
         parameters:
           app.schema-name: marketplace
+          file-opener-class: org.springframework.boot.loader.jar.JarFileOpener
         clear-checksums: false
         enabled: true
         user: myuser

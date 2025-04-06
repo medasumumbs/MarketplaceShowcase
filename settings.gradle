@@ -1,4 +1,3 @@
 rootProject.name = 'MarketplaceShowcase'
 include 'marketplaceApplication'
 include 'paymentsService'
-include 'liquibaseSettings'
