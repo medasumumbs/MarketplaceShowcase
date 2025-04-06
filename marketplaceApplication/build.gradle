@@ -62,3 +62,17 @@ openApiGenerate {
 			useTags: "true"
 	])
 }
+
+openApiGenerate {
+	generatorName.set("java") // Указываем генератор (java)
+	inputSpec.set("$projectDir/src/main/resources/paymentServiceOpenAPI.yaml")
+	outputDir.set("$projectDir/build/generated")
+	modelPackage.set("ru.muravin.marketplaceshowcase.paymentServiceClient.model")
+	apiPackage.set("ru.muravin.marketplaceshowcase.paymentServiceClient.api")
+	invokerPackage.set("ru.muravin.marketplaceshowcase.paymentServiceClient.server")
+	configOptions.set([
+			library: "webclient", // Библиотека для использования
+			useJakartaEe: "true", // Использовать Jakarta EE
+			openApiNullable: "false" // Отключить поддержку nullable
+	])
+}
