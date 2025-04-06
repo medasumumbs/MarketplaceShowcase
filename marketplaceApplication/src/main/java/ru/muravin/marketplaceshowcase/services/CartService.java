@@ -110,7 +110,7 @@ public class CartService {
             return new CartItemToUIDto(cartItem, new ProductToUIDto(product));
         });
     }
-    public Mono<Double> getCartSumFlux(Mono<Long> cartId) {
+    public Mono<Double> getCartSumMono(Mono<Long> cartId) {
         Double sum = (double) 0;
         return getCartItemsDtoFlux(cartId).reduce(
                 sum,

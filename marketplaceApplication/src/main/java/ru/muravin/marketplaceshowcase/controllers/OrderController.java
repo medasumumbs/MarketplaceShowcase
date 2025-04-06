@@ -2,11 +2,7 @@ package ru.muravin.marketplaceshowcase.controllers;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Mono;
@@ -35,6 +31,17 @@ public class OrderController {
                 .flatMap(orderService::addOrder)
                 .map((order) -> {
                     return Rendering.redirectTo("/orders/" + order.getId() + "?justBought=true").build();
+                }).onErrorMap(e -> {
+                    if (e.getMessage().contains("400")) {
+                        return new RuntimeException("Баланс недостаточен для совершения заказа");
+                    } else if (e.getMessage().contains("404")) {
+                        return new RuntimeException("Пользователь не найден");
+                    } else {
+                        return new RuntimeException("Платежный сервис временно недоступен");
+                    }
+                }).onErrorResume(error -> {
+                    return Mono.just(Rendering.view("errorPage")
+                            .modelAttribute("message", "Заказ не может быть совершен: " + error.getMessage()).build());
                 });
     }
     @GetMapping("/{id}")
@@ -50,5 +57,10 @@ public class OrderController {
         return orderService.findAll().collectList().flatMap(orders -> {
             return Mono.just(Rendering.view("orders").modelAttribute("orders", orders).build());
         });
+    }
+    @ExceptionHandler(Exception.class)
+    public Mono<Rendering> unknownErrorPage(Model model, Exception exception) {
+        exception.printStackTrace();
+        return Mono.just(Rendering.view("errorPage").modelAttribute("message", "Неизвестная ошибка: " + exception.getMessage()).build());
     }
 }

@@ -1,5 +1,4 @@
 package ru.muravin.marketplaceshowcase.serviceTests;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +21,6 @@ import ru.muravin.marketplaceshowcase.repositories.CartsReactiveRepository;
 import ru.muravin.marketplaceshowcase.repositories.ProductsReactiveRepository;
 import ru.muravin.marketplaceshowcase.services.CartService;
 
-import static org.hamcrest.Matchers.any;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -176,7 +174,7 @@ public class CartServiceTest {
                 new CartItemToUIDto(cartItem,new ProductToUIDto(product)),
                 new CartItemToUIDto(cartItem,new ProductToUIDto(product)))
         );
-        cartService.getCartSumFlux(Mono.just(1l)).doOnSuccess(sum -> {
+        cartService.getCartSumMono(Mono.just(1l)).doOnSuccess(sum -> {
             assertEquals(100d, sum);
         }).block();
     }

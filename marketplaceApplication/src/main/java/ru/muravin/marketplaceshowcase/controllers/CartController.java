@@ -2,10 +2,7 @@ package ru.muravin.marketplaceshowcase.controllers;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Mono;
@@ -33,7 +30,7 @@ public class CartController {
     @GetMapping
     public Mono<Rendering> showCart(Model model) {
         var firstCartIdMono = cartService.getFirstCartIdMono();
-        var sumOfOrder = cartService.getCartSumFlux(firstCartIdMono);
+        var sumOfOrder = cartService.getCartSumMono(firstCartIdMono);
         var cartItems = cartService.getCartItemsDtoFlux(firstCartIdMono);
         var balance = paymentServiceClientAPI.usersUserIdGet(1);
         return Mono.zip(sumOfOrder, cartItems.collectList(), balance).map(tuple -> {
