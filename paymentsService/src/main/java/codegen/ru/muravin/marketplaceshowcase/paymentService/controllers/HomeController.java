@@ -15,7 +15,7 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
  * Home redirection to OpenAPI api documentation
  */
 @Controller
-@RequestMapping
+@RequestMapping("/api")
 public class HomeController {
 
     @GetMapping
