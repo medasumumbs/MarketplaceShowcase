@@ -21,6 +21,7 @@ import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.repositories.ProductsReactiveRepository;
 import ru.muravin.marketplaceshowcase.services.CartService;
 import ru.muravin.marketplaceshowcase.services.ProductsService;
+import ru.muravin.marketplaceshowcase.services.RedisCacheService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,14 +39,23 @@ public class ProductServiceTest {
     @MockitoBean(reset = MockReset.BEFORE)
     ProductsReactiveRepository productsReactiveRepository;
 
+    @MockitoBean(reset = MockReset.BEFORE)
+    RedisCacheService redisCacheService;
+
     @Autowired
     private ProductsService productsService;
     @Test
     void testCountAll() {
         long count = 25L;
         when(productsReactiveRepository.count()).thenReturn(Mono.just(count));
+        when(redisCacheService.getProductsCount(null)).thenReturn(Mono.just(count));
         assertEquals(count, productsService.countAll().block());
         verify(productsReactiveRepository, times(1)).count();
+
+        when(productsReactiveRepository.count()).thenReturn(Mono.just(count));
+        when(redisCacheService.getProductsCount(null)).thenReturn(Mono.empty());
+        when(redisCacheService.setProductsCount(any(),any())).thenReturn(Mono.just(true));
+        assertEquals(count, productsService.countAll().block());
     }
 
     @Test
@@ -65,6 +75,8 @@ public class ProductServiceTest {
         var cartItemFake = new CartItem(1l,1l);
         cartItemFake.setQuantity(0);
         when(cartService.getCartItemsFlux(any(Mono.class))).thenReturn(Flux.just(cartItemFake));
+        when(redisCacheService.setProductsListCache(any(),anyString(),anyInt(),anyInt(),any())).thenReturn(Mono.just(2L));
+        when(redisCacheService.getProductsListCache(any(),anyString(),anyInt(),anyInt())).thenReturn(Flux.empty());
         var realResult = productsService.findAll(pageRequest.getPageNumber(), pageRequest.getPageSize(), "id").toIterable();
         List<ProductToUIDto> realResultParsed = new ArrayList<>();
         realResult.forEach(realResultParsed::add);
@@ -93,6 +105,8 @@ public class ProductServiceTest {
         when(productsReactiveRepository.findById(1L)).thenReturn(Mono.just(product));
         when(cartService.getFirstCartIdMono()).thenReturn(Mono.just(1l));
         when(cartService.getCartItemMono(1L, 1L)).thenReturn(Mono.empty());
+        when(redisCacheService.getProductCache(product.getId())).thenReturn(Mono.empty());
+        when(redisCacheService.setProductCache(any())).thenReturn(Mono.just(true));
         var result = productsService.findById(1L).block();
         assertNotNull(result);
         var dto = new ProductToUIDto(product);
@@ -101,6 +115,7 @@ public class ProductServiceTest {
     }
     @Test
     void testFindByIdNotFound() {
+        when(redisCacheService.getProductCache(1L)).thenReturn(Mono.empty());
         when(productsReactiveRepository.findById(1L)).thenReturn(Mono.empty());
         when(cartService.getFirstCartIdMono()).thenReturn(Mono.just(1l));
         when(cartService.getCartItemMono(1L, 1L)).thenReturn(Mono.empty());
@@ -120,6 +135,8 @@ public class ProductServiceTest {
                 .thenReturn(Flux.fromIterable(products.subList(1,3)));
         when(cartService.getFirstCartIdMono()).thenReturn(Mono.just(1l));
         when(cartService.getCartItemsFlux(any(Mono.class))).thenReturn(Flux.empty());
+        when(redisCacheService.setProductsListCache(any(String.class),any(String.class),anyInt(),anyInt(),any())).thenReturn(Mono.just(Long.valueOf(2)));
+        when(redisCacheService.getProductsListCache(any(String.class),any(String.class),anyInt(),anyInt())).thenReturn(Flux.empty());
         var result = productsService.findByNameLike(searchString, pageable, "id").toIterable();
         var resultParsed = new ArrayList<>();
         result.forEach(resultParsed::add);

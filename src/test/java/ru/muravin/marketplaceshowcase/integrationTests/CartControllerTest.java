@@ -8,6 +8,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.servlet.MockMvc;
@@ -17,11 +18,14 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.WebApplicationContext;
 import ru.muravin.marketplaceshowcase.MarketplaceShowcaseApplication;
 import ru.muravin.marketplaceshowcase.TestcontainersConfiguration;
+import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
+import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 import ru.muravin.marketplaceshowcase.models.Cart;
 import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.models.User;
 import ru.muravin.marketplaceshowcase.repositories.*;
+import ru.muravin.marketplaceshowcase.services.RedisCacheService;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -49,6 +53,14 @@ public class CartControllerTest {
     ProductsReactiveRepository productsReactiveRepository;
     @Autowired
     private UserReactiveRepository userReactiveRepository;
+    @Autowired
+    private RedisCacheService redisCacheService;
+    @Autowired
+    private ReactiveRedisTemplate<String, ProductToUIDto> reactiveRedisTemplate;
+    @Autowired
+    private ReactiveRedisTemplate<String, Long> reactiveRedisTemplateForLongValues;
+    @Autowired
+    private ReactiveRedisTemplate<String, CartItemToUIDto> reactiveRedisTemplateForCartItems;
 
     @BeforeEach
     void setUp() {
@@ -58,6 +70,7 @@ public class CartControllerTest {
         orderReactiveRepository.deleteAll().block();
         cartsReactiveRepository.deleteAll().block();
         userReactiveRepository.deleteAll().block();
+        redisCacheService.evictCache().block();
         var user = new User();
         user.setUsername("username");
         user.setPassword("password");
