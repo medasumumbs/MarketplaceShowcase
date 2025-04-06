@@ -30,10 +30,14 @@ spring:
             hibernate:
                 format_sql: true
     liquibase:
+        url: jdbc:postgresql://localhost:5432/mydatabase?currentSchema=marketplace
         change-log: classpath:/liquibase/db.changelog-master.xml
         parameters:
           app.schema-name: marketplace
         clear-checksums: false
+        enabled: true
+        user: myuser
+        password: secret
     thymeleaf:
         prefix: classpath:/templates/
         suffix: .html
@@ -68,3 +72,5 @@ logging:
                 jdbc:
                     support:
                         JdbcTransactionManager: debug
+        liquibase: DEBUG
+        org.springframework.boot.autoconfigure.liquibase: DEBUG
