@@ -1,0 +1,69 @@
+openapi: 3.0.3
+info:
+  title: Payment Service API
+  description: API для управления балансом на счете пользователя и платежами
+  version: 1.0.0
+paths:
+  /users/{userId}:
+    get:
+      summary: Получить баланс пользователя
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Balance'
+        '404':
+          description: Пользователь не найден
+        '5XX':
+          description: Внутренняя ошибка сервера
+        default:
+          description: Неизвестная ошибка при выяснении баланса
+  /users/{userId}/makePayment:
+    post:
+      summary: Совершить платеж (совершить списание денег со счёта)
+      parameters:
+        - name: sum
+          in: query
+          required: true
+          schema:
+            type: number
+            example: 101.15
+            format: float
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '404':
+          description: Пользователь не найден
+        '5XX':
+          description: Внутренняя ошибка сервера
+        default:
+          description: Неизвестная ошибка при выполнении платежа
+components:
+  schemas:
+    PaymentResponse:
+      type: object
+      properties:
+        restBalance:
+          description: Остаточный баланс
+          type: integer
+          example: 15.01
+          format: float
+        message:
+          description: Описание статуса ответа
+          type: string
+          example: OK
+    Balance:
+      type: object
+      properties:
+        balance:
+          format: float
+          type: number
+          example: 101.15
