@@ -5,6 +5,7 @@ plugins {
 	id "org.openapi.generator" version "7.12.0"
 }
 
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)
@@ -29,7 +30,6 @@ dependencies {
 	implementation 'io.projectreactor:reactor-core:3.7.3'
 	implementation "org.springframework.boot:spring-boot-starter-data-r2dbc"
 	implementation "org.postgresql:r2dbc-postgresql:1.0.7.RELEASE"
-	implementation 'org.liquibase:liquibase-core:4.25.1'
 	implementation 'com.opencsv:opencsv:5.0'
 	implementation "org.springframework.boot:spring-boot-starter-webflux"
 	compileOnly 'org.projectlombok:lombok'
@@ -42,23 +42,22 @@ dependencies {
 	testImplementation 'org.testcontainers:junit-jupiter'
 	testImplementation 'org.testcontainers:postgresql'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	implementation 'org.springframework.data:spring-data-commons'
+	implementation "org.springdoc:springdoc-openapi-webflux-ui:1.6.14"
+	// JSR305 for @Nullable annotations
+	implementation 'com.google.code.findbugs:jsr305:3.0.2'
+	// Jackson Dataformat YAML
+	implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
+	// Jackson JSR310 support
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+	// Jackson Nullable support
+	implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+	// Bean Validation API
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	// Jackson Databind
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
-}
-openApiGenerate {
-	generatorName.set("spring")
-	inputSpec.set("$projectDir/src/main/resources/paymentServiceOpenAPI.yaml")
-	outputDir.set("$projectDir/build/generated")
-	modelPackage.set("ru.muravin.marketplaceshowcase.paymentService.model")
-	apiPackage.set("ru.muravin.marketplaceshowcase.paymentService.api")
-	invokerPackage.set("ru.muravin.marketplaceshowcase.paymentService.server")
-	configOptions.set([
-			sourceFolder: "src/gen/java/main/codegen",
-			interfaceOnly: "false",
-			library: "spring-boot",
-			reactive: "true",
-			useTags: "true"
-	])
 }

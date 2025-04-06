@@ -1,0 +1,32 @@
+server:
+  port: 8080
+spring:
+  jackson:
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSSZ
+    serialization.WRITE_DATES_AS_TIMESTAMPS: false
+  codec:
+    max-in-memory-size: 10MB
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/mydatabase?currentSchema=marketplace
+    username: myuser
+    password: secret
+    pool:
+      enabled: true                               # Включение пула соединений
+      initial-size: 10                            # Начальное количество соединений в пуле
+      max-size: 50                                # Максимальное количество соединений
+      max-idle-time: 30s                          # Время бездействия соединения перед закрытием
+      max-life-time: 10m                          # Максимальное время жизни соединения
+      validation-query: SELECT 1                  # SQL-запрос для проверки работоспособности соединения
+  sql:
+    init:
+      mode: never
+  application:
+    name: paymentsService
+
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true

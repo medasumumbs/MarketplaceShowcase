@@ -7,6 +7,13 @@ paths:
   /users/{userId}:
     get:
       summary: Получить баланс пользователя
+      parameters:
+        - name: userId
+          in: path
+          description: Идентификатор пользователя
+          required: true
+          schema:
+            type: integer
       responses:
         '200':
           description: Успешный ответ
@@ -33,6 +40,12 @@ paths:
             type: number
             example: 101.15
             format: float
+        - name: userId
+          in: path
+          description: Идентификатор пользователя
+          required: true
+          schema:
+            type: integer
       responses:
         '200':
           description: Успешный ответ
