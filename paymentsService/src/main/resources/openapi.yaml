@@ -1,98 +1,84 @@
 openapi: 3.0.3
 info:
-  description: API для управления балансом на счете пользователя и платежами
   title: Payment Service API
+  description: API для управления балансом на счете пользователя и платежами
   version: 1.0.0
-servers:
-  - url: /
 paths:
   /users/{userId}:
     get:
+      summary: Получить баланс пользователя
       parameters:
-        - description: Идентификатор пользователя
-          explode: false
+        - name: userId
           in: path
-          name: userId
+          description: Идентификатор пользователя
           required: true
           schema:
             type: integer
-          style: simple
       responses:
-        "200":
+        '200':
+          description: Успешный ответ
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Balance"
-          description: Успешный ответ
-        "404":
+                $ref: '#/components/schemas/Balance'
+        '404':
           description: Пользователь не найден
-        "5XX":
+        '5XX':
           description: Внутренняя ошибка сервера
         default:
           description: Неизвестная ошибка при выяснении баланса
-      summary: Получить баланс пользователя
-      x-accepts:
-        - application/json
   /users/{userId}/makePayment:
     post:
+      summary: Совершить платеж (совершить списание денег со счёта)
       parameters:
-        - explode: true
+        - name: sum
           in: query
-          name: sum
           required: true
           schema:
+            type: number
             example: 101.15
             format: float
-            type: number
-          style: form
-        - description: Идентификатор пользователя
-          explode: false
+        - name: userId
           in: path
-          name: userId
+          description: Идентификатор пользователя
           required: true
           schema:
             type: integer
-          style: simple
       responses:
-        "200":
+        '200':
+          description: Успешный ответ
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PaymentResponse"
-          description: Успешный ответ
-        "404":
+                $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          description: Превышена максимально возможная сумма платежа
+        '404':
           description: Пользователь не найден
-        "5XX":
+        '5XX':
           description: Внутренняя ошибка сервера
         default:
           description: Неизвестная ошибка при выполнении платежа
-      summary: Совершить платеж (совершить списание денег со счёта)
-      x-accepts:
-        - application/json
 components:
   schemas:
     PaymentResponse:
-      example:
-        restBalance: 0
-        message: OK
+      type: object
       properties:
         restBalance:
           description: Остаточный баланс
-          format: float
           type: number
+          example: 15.01
+          format: float
         message:
           description: Описание статуса ответа
-          example: OK
           type: string
-      type: object
+          example: OK
     Balance:
-      example:
-        balance: 101.15
+      type: object
       properties:
         balance:
-          example: 101.15
           format: float
           type: number
+          example: 101.15
       required:
         - balance
-      type: object

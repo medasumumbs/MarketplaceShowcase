@@ -181,12 +181,8 @@
 <body>
 <h1>Payment Service API</h1>
 <div class="app-desc">API для управления балансом на счете пользователя и платежами</div>
-<div class="app-desc">More information: <a href="https://helloreverb.com">https://helloreverb.com</a></div>
-<div class="app-desc">Contact Info: <a href="hello@helloreverb.com">hello@helloreverb.com</a></div>
 <div class="app-desc">Version: 1.0.0</div>
 
-<div class="license-info">All rights reserved</div>
-<div class="license-url">http://apache.org/licenses/LICENSE-2.0.html</div>
 <h2>Access</h2>
 
 <h2><a name="__Methods">Methods</a></h2>
@@ -289,7 +285,7 @@
     <h3 class="field-label">Example data</h3>
     <div class="example-data-content-type">Content-Type: application/json</div>
     <pre class="example"><code>{
-  "restBalance" : 0,
+  "restBalance" : 15.01,
   "message" : "OK"
 }</code></pre>
 
@@ -304,6 +300,9 @@
     <h4 class="field-label">200</h4>
     Успешный ответ
     <a href="#PaymentResponse">PaymentResponse</a>
+    <h4 class="field-label">400</h4>
+    Превышена максимально возможная сумма платежа
+    <a href="#"></a>
     <h4 class="field-label">404</h4>
     Пользователь не найден
     <a href="#"></a>
@@ -338,6 +337,7 @@
 
     <div class="field-items">
         <div class="param">restBalance (optional)</div><div class="param-desc"><span class="param-type"><a href="#float">Float</a></span> Остаточный баланс format: float</div>
+        <div class="param-desc"><span class="param-type">example: 15.01</span></div>
         <div class="param">message (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span> Описание статуса ответа </div>
         <div class="param-desc"><span class="param-type">example: OK</span></div>
     </div>  <!-- field-items -->

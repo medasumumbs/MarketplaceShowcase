@@ -51,6 +51,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          description: Превышена максимально возможная сумма платежа
         '404':
           description: Пользователь не найден
         '5XX':

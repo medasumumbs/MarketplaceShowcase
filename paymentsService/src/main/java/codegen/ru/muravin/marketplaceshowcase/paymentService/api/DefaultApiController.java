@@ -24,7 +24,7 @@ public class DefaultApiController implements DefaultApi {
     @Override
     public Mono<ResponseEntity<Balance>> usersUserIdGet(Integer userId, ServerWebExchange exchange) {
         if (userId == null) {
-            return Mono.just(ResponseEntity.badRequest().build());
+            return Mono.just(ResponseEntity.notFound().build());
         }
         if (userId != 1) {
             return Mono.just(ResponseEntity.notFound().build());
@@ -37,14 +37,19 @@ public class DefaultApiController implements DefaultApi {
     @Override
     public Mono<ResponseEntity<PaymentResponse>> usersUserIdMakePaymentPost(Float sum, Integer userId, ServerWebExchange exchange) {
         if (userId == null) {
-            return Mono.just(ResponseEntity.badRequest().build());
+            return Mono.just(ResponseEntity.notFound().build());
         }
         if (userId != 1) {
             return Mono.just(ResponseEntity.notFound().build());
         }
         PaymentResponse paymentResponse = new PaymentResponse();
         paymentResponse.setMessage("OK");
-        paymentResponse.setRestBalance(10000.25f - sum);
+        var restBalance = 10000.25f - sum;
+        paymentResponse.setRestBalance(restBalance);
+        if (restBalance < 0) {
+            paymentResponse.setMessage("Превышена максимально возможная сумма платежа");
+            return Mono.just(ResponseEntity.badRequest().body(paymentResponse));
+        }
         return Mono.just(ResponseEntity.ok().body(paymentResponse));
     }
 }

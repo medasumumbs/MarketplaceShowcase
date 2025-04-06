@@ -86,6 +86,7 @@ public interface DefaultApi {
      * @param sum  (required)
      * @param userId Идентификатор пользователя (required)
      * @return Успешный ответ (status code 200)
+     *         or Превышена максимально возможная сумма платежа (status code 400)
      *         or Пользователь не найден (status code 404)
      *         or Внутренняя ошибка сервера (status code 5XX)
      *         or Неизвестная ошибка при выполнении платежа (status code 200)
@@ -97,6 +98,7 @@ public interface DefaultApi {
                     @ApiResponse(responseCode = "200", description = "Успешный ответ", content = {
                             @Content(mediaType = "application/json", schema = @Schema(implementation = PaymentResponse.class))
                     }),
+                    @ApiResponse(responseCode = "400", description = "Превышена максимально возможная сумма платежа"),
                     @ApiResponse(responseCode = "404", description = "Пользователь не найден"),
                     @ApiResponse(responseCode = "5XX", description = "Внутренняя ошибка сервера"),
                     @ApiResponse(responseCode = "default", description = "Неизвестная ошибка при выполнении платежа")
@@ -117,7 +119,7 @@ public interface DefaultApi {
         exchange.getResponse().setStatusCode(HttpStatus.NOT_IMPLEMENTED);
         for (MediaType mediaType : exchange.getRequest().getHeaders().getAccept()) {
             if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                String exampleString = "{ \"restBalance\" : 0, \"message\" : \"OK\" }";
+                String exampleString = "{ \"restBalance\" : 15.01, \"message\" : \"OK\" }";
                 result = ApiUtil.getExampleResponse(exchange, MediaType.valueOf("application/json"), exampleString);
                 break;
             }
