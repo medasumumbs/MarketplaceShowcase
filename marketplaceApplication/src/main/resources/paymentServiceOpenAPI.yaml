@@ -20,9 +20,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Balance'
+                $ref: '#/components/schemas/Balance'
         '404':
           description: Пользователь не найден
         '5XX':
@@ -66,7 +64,7 @@ components:
       properties:
         restBalance:
           description: Остаточный баланс
-          type: integer
+          type: number
           example: 15.01
           format: float
         message:
@@ -80,3 +78,5 @@ components:
           format: float
           type: number
           example: 101.15
+      required:
+        - balance

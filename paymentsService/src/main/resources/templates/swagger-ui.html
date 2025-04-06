@@ -181,7 +181,17 @@
 <body>
 <h1>Payment Service API</h1>
 <div class="app-desc">API для управления балансом на счете пользователя и платежами</div>
+<div class="app-desc">More information: <a href="https://helloreverb.com">https://helloreverb.com</a></div>
+<div class="app-desc">Contact Info: <a href="hello@helloreverb.com">hello@helloreverb.com</a></div>
 <div class="app-desc">Version: 1.0.0</div>
+
+<div class="license-info">All rights reserved</div>
+<div class="license-url">http://apache.org/licenses/LICENSE-2.0.html</div>
+<h2>Access</h2>
+
+<h2><a name="__Methods">Methods</a></h2>
+[ Jump to <a href="#__Models">Models</a> ]
+
 <h3>Table of Contents </h3>
 <div class="method-summary"></div>
 <h4><a href="#Default">Default</a></h4>
@@ -211,7 +221,7 @@
 
     <h3 class="field-label">Return type</h3>
     <div class="return-type">
-        array[<a href="#Balance">Balance</a>]
+        <a href="#Balance">Balance</a>
 
     </div>
 
@@ -219,11 +229,9 @@
 
     <h3 class="field-label">Example data</h3>
     <div class="example-data-content-type">Content-Type: application/json</div>
-    <pre class="example"><code>[ {
+    <pre class="example"><code>{
   "balance" : 101.15
-}, {
-  "balance" : 101.15
-} ]</code></pre>
+}</code></pre>
 
     <h3 class="field-label">Produces</h3>
     This API call produces the following media types according to the <span class="header">Accept</span> request header;
@@ -235,7 +243,7 @@
     <h3 class="field-label">Responses</h3>
     <h4 class="field-label">200</h4>
     Успешный ответ
-
+    <a href="#Balance">Balance</a>
     <h4 class="field-label">404</h4>
     Пользователь не найден
     <a href="#"></a>
@@ -321,7 +329,7 @@
     <h3><a name="Balance"><code>Balance</code></a> <a class="up" href="#__Models">Up</a></h3>
 
     <div class="field-items">
-        <div class="param">balance (optional)</div><div class="param-desc"><span class="param-type"><a href="#float">Float</a></span>  format: float</div>
+        <div class="param">balance </div><div class="param-desc"><span class="param-type"><a href="#float">Float</a></span>  format: float</div>
         <div class="param-desc"><span class="param-type">example: 101.15</span></div>
     </div>  <!-- field-items -->
 </div>
@@ -329,7 +337,7 @@
     <h3><a name="PaymentResponse"><code>PaymentResponse</code></a> <a class="up" href="#__Models">Up</a></h3>
 
     <div class="field-items">
-        <div class="param">restBalance (optional)</div><div class="param-desc"><span class="param-type"><a href="#integer">Integer</a></span> Остаточный баланс format: float</div>
+        <div class="param">restBalance (optional)</div><div class="param-desc"><span class="param-type"><a href="#float">Float</a></span> Остаточный баланс format: float</div>
         <div class="param">message (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span> Описание статуса ответа </div>
         <div class="param-desc"><span class="param-type">example: OK</span></div>
     </div>  <!-- field-items -->

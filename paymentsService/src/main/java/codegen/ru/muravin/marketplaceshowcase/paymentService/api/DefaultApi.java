@@ -45,32 +45,32 @@ public interface DefaultApi {
      *         or Неизвестная ошибка при выяснении баланса (status code 200)
      */
     @Operation(
-        operationId = "usersUserIdGet",
-        summary = "Получить баланс пользователя",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Успешный ответ", content = {
-                @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = Balance.class)))
-            }),
-            @ApiResponse(responseCode = "404", description = "Пользователь не найден"),
-            @ApiResponse(responseCode = "5XX", description = "Внутренняя ошибка сервера"),
-            @ApiResponse(responseCode = "default", description = "Неизвестная ошибка при выяснении баланса")
-        }
+            operationId = "usersUserIdGet",
+            summary = "Получить баланс пользователя",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Успешный ответ", content = {
+                            @Content(mediaType = "application/json", schema = @Schema(implementation = Balance.class))
+                    }),
+                    @ApiResponse(responseCode = "404", description = "Пользователь не найден"),
+                    @ApiResponse(responseCode = "5XX", description = "Внутренняя ошибка сервера"),
+                    @ApiResponse(responseCode = "default", description = "Неизвестная ошибка при выяснении баланса")
+            }
     )
     @RequestMapping(
-        method = RequestMethod.GET,
-        value = "/users/{userId}",
-        produces = { "application/json" }
+            method = RequestMethod.GET,
+            value = "/users/{userId}",
+            produces = { "application/json" }
     )
-    
-    default Mono<ResponseEntity<Flux<Balance>>> usersUserIdGet(
-        @Parameter(name = "userId", description = "Идентификатор пользователя", required = true, in = ParameterIn.PATH) @PathVariable("userId") Integer userId,
-        @Parameter(hidden = true) final ServerWebExchange exchange
+
+    default Mono<ResponseEntity<Balance>> usersUserIdGet(
+            @Parameter(name = "userId", description = "Идентификатор пользователя", required = true, in = ParameterIn.PATH) @PathVariable("userId") Integer userId,
+            @Parameter(hidden = true) final ServerWebExchange exchange
     ) {
         Mono<Void> result = Mono.empty();
         exchange.getResponse().setStatusCode(HttpStatus.NOT_IMPLEMENTED);
         for (MediaType mediaType : exchange.getRequest().getHeaders().getAccept()) {
             if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                String exampleString = "[ { \"balance\" : 101.15 }, { \"balance\" : 101.15 } ]";
+                String exampleString = "{ \"balance\" : 101.15 }";
                 result = ApiUtil.getExampleResponse(exchange, MediaType.valueOf("application/json"), exampleString);
                 break;
             }
@@ -91,27 +91,27 @@ public interface DefaultApi {
      *         or Неизвестная ошибка при выполнении платежа (status code 200)
      */
     @Operation(
-        operationId = "usersUserIdMakePaymentPost",
-        summary = "Совершить платеж (совершить списание денег со счёта)",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Успешный ответ", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = PaymentResponse.class))
-            }),
-            @ApiResponse(responseCode = "404", description = "Пользователь не найден"),
-            @ApiResponse(responseCode = "5XX", description = "Внутренняя ошибка сервера"),
-            @ApiResponse(responseCode = "default", description = "Неизвестная ошибка при выполнении платежа")
-        }
+            operationId = "usersUserIdMakePaymentPost",
+            summary = "Совершить платеж (совершить списание денег со счёта)",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Успешный ответ", content = {
+                            @Content(mediaType = "application/json", schema = @Schema(implementation = PaymentResponse.class))
+                    }),
+                    @ApiResponse(responseCode = "404", description = "Пользователь не найден"),
+                    @ApiResponse(responseCode = "5XX", description = "Внутренняя ошибка сервера"),
+                    @ApiResponse(responseCode = "default", description = "Неизвестная ошибка при выполнении платежа")
+            }
     )
     @RequestMapping(
-        method = RequestMethod.POST,
-        value = "/users/{userId}/makePayment",
-        produces = { "application/json" }
+            method = RequestMethod.POST,
+            value = "/users/{userId}/makePayment",
+            produces = { "application/json" }
     )
-    
+
     default Mono<ResponseEntity<PaymentResponse>> usersUserIdMakePaymentPost(
-        @NotNull @Parameter(name = "sum", description = "", required = true, in = ParameterIn.QUERY) @Valid @RequestParam(value = "sum", required = true) Float sum,
-        @Parameter(name = "userId", description = "Идентификатор пользователя", required = true, in = ParameterIn.PATH) @PathVariable("userId") Integer userId,
-        @Parameter(hidden = true) final ServerWebExchange exchange
+            @NotNull @Parameter(name = "sum", description = "", required = true, in = ParameterIn.QUERY) @Valid @RequestParam(value = "sum", required = true) Float sum,
+            @Parameter(name = "userId", description = "Идентификатор пользователя", required = true, in = ParameterIn.PATH) @PathVariable("userId") Integer userId,
+            @Parameter(hidden = true) final ServerWebExchange exchange
     ) {
         Mono<Void> result = Mono.empty();
         exchange.getResponse().setStatusCode(HttpStatus.NOT_IMPLEMENTED);

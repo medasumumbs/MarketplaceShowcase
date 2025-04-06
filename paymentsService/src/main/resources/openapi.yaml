@@ -4,27 +4,25 @@ info:
   title: Payment Service API
   version: 1.0.0
 servers:
-- url: /
+  - url: /
 paths:
   /users/{userId}:
     get:
       parameters:
-      - description: Идентификатор пользователя
-        explode: false
-        in: path
-        name: userId
-        required: true
-        schema:
-          type: integer
-        style: simple
+        - description: Идентификатор пользователя
+          explode: false
+          in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+          style: simple
       responses:
         "200":
           content:
             application/json:
               schema:
-                items:
-                  $ref: "#/components/schemas/Balance"
-                type: array
+                $ref: "#/components/schemas/Balance"
           description: Успешный ответ
         "404":
           description: Пользователь не найден
@@ -34,27 +32,27 @@ paths:
           description: Неизвестная ошибка при выяснении баланса
       summary: Получить баланс пользователя
       x-accepts:
-      - application/json
+        - application/json
   /users/{userId}/makePayment:
     post:
       parameters:
-      - explode: true
-        in: query
-        name: sum
-        required: true
-        schema:
-          example: 101.15
-          format: float
-          type: number
-        style: form
-      - description: Идентификатор пользователя
-        explode: false
-        in: path
-        name: userId
-        required: true
-        schema:
-          type: integer
-        style: simple
+        - explode: true
+          in: query
+          name: sum
+          required: true
+          schema:
+            example: 101.15
+            format: float
+            type: number
+          style: form
+        - description: Идентификатор пользователя
+          explode: false
+          in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+          style: simple
       responses:
         "200":
           content:
@@ -70,7 +68,7 @@ paths:
           description: Неизвестная ошибка при выполнении платежа
       summary: Совершить платеж (совершить списание денег со счёта)
       x-accepts:
-      - application/json
+        - application/json
 components:
   schemas:
     PaymentResponse:
@@ -81,7 +79,7 @@ components:
         restBalance:
           description: Остаточный баланс
           format: float
-          type: integer
+          type: number
         message:
           description: Описание статуса ответа
           example: OK
@@ -95,4 +93,6 @@ components:
           example: 101.15
           format: float
           type: number
+      required:
+        - balance
       type: object

@@ -2,6 +2,7 @@ package codegen.ru.muravin.marketplaceshowcase.paymentService.model;
 
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.lang.Nullable;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -13,7 +14,18 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 public class Balance {
 
-  private @Nullable Float balance;
+  private Float balance;
+
+  public Balance() {
+    super();
+  }
+
+  /**
+   * Constructor with only required parameters
+   */
+  public Balance(Float balance) {
+    this.balance = balance;
+  }
 
   public Balance balance(Float balance) {
     this.balance = balance;
@@ -24,8 +36,8 @@ public class Balance {
    * Get balance
    * @return balance
    */
-  
-  @Schema(name = "balance", example = "101.15", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @NotNull
+  @Schema(name = "balance", example = "101.15", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("balance")
   public Float getBalance() {
     return balance;

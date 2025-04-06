@@ -12,11 +12,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 public class PaymentResponse {
 
-  private @Nullable Integer restBalance;
+  private @Nullable Float restBalance;
 
   private @Nullable String message;
 
-  public PaymentResponse restBalance(Integer restBalance) {
+  public PaymentResponse restBalance(Float restBalance) {
     this.restBalance = restBalance;
     return this;
   }
@@ -25,14 +25,14 @@ public class PaymentResponse {
    * Остаточный баланс
    * @return restBalance
    */
-  
+
   @Schema(name = "restBalance", description = "Остаточный баланс", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("restBalance")
-  public Integer getRestBalance() {
+  public Float getRestBalance() {
     return restBalance;
   }
 
-  public void setRestBalance(Integer restBalance) {
+  public void setRestBalance(Float restBalance) {
     this.restBalance = restBalance;
   }
 
@@ -45,7 +45,7 @@ public class PaymentResponse {
    * Описание статуса ответа
    * @return message
    */
-  
+
   @Schema(name = "message", example = "OK", description = "Описание статуса ответа", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("message")
   public String getMessage() {
@@ -66,7 +66,7 @@ public class PaymentResponse {
     }
     PaymentResponse paymentResponse = (PaymentResponse) o;
     return Objects.equals(this.restBalance, paymentResponse.restBalance) &&
-        Objects.equals(this.message, paymentResponse.message);
+            Objects.equals(this.message, paymentResponse.message);
   }
 
   @Override
