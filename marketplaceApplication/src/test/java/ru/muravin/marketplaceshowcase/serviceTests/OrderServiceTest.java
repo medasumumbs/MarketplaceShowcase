@@ -21,12 +21,15 @@ import ru.muravin.marketplaceshowcase.models.Order;
 import ru.muravin.marketplaceshowcase.models.OrderItem;
 import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.models.User;
+import ru.muravin.marketplaceshowcase.paymentServiceClient.api.PaymentServiceClientAPI;
+import ru.muravin.marketplaceshowcase.paymentServiceClient.model.PaymentResponse;
 import ru.muravin.marketplaceshowcase.repositories.CartItemsReactiveRepository;
 import ru.muravin.marketplaceshowcase.repositories.OrderItemsReactiveRepository;
 import ru.muravin.marketplaceshowcase.repositories.OrderReactiveRepository;
 import ru.muravin.marketplaceshowcase.repositories.UserReactiveRepository;
 import ru.muravin.marketplaceshowcase.services.CartService;
 import ru.muravin.marketplaceshowcase.services.OrderService;
+import ru.muravin.marketplaceshowcase.services.RedisCacheService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -54,7 +57,10 @@ public class OrderServiceTest {
     private UserReactiveRepository userReactiveRepository;
     @MockitoBean(reset = MockReset.BEFORE)
     private CartItemsReactiveRepository cartItemsReactiveRepository;
-
+    @MockitoBean(reset = MockReset.BEFORE)
+    private PaymentServiceClientAPI paymentServiceClient;
+    @MockitoBean(reset = MockReset.BEFORE)
+    private RedisCacheService redisCacheService;
     @Test
     void findByIdTest() {
         var order = getTestOrder(1L);
@@ -112,8 +118,14 @@ public class OrderServiceTest {
         when(cartItemsReactiveRepository.findAllByCart_Id(anyLong())).thenReturn(Flux.just(testCartItem));
         when(orderItemsReactiveRepository.saveAll(any(Iterable.class))).thenReturn(Flux.just(new ArrayList<OrderItemToUIDto>() {}));
         when(cartService.deleteAllItemsByCart(any())).thenReturn(Mono.empty());
+        when(paymentServiceClient.usersUserIdMakePaymentPost(any(), any())).thenReturn(Mono.just(
+                new PaymentResponse().restBalance(100.00f).message("OK")
+        ));
+        when(cartService.getCartSumMono(any())).thenReturn(Mono.just(Double.valueOf("50")));
+        when(redisCacheService.evictCartCache()).thenReturn(Mono.just(2l));
         Cart cart = new Cart();
         cart.setId(1L);
+        cart.setUserId(1L);
         var cartItem = new CartItem();
         cartItem.setQuantity(2);
         orderService.addOrder(cart).block();
