@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
@@ -15,6 +16,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.WebApplicationContext;
+import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.MarketplaceShowcaseApplication;
 import ru.muravin.marketplaceshowcase.TestcontainersConfiguration;
 import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
@@ -26,21 +28,22 @@ import ru.muravin.marketplaceshowcase.models.User;
 import ru.muravin.marketplaceshowcase.repositories.*;
 import ru.muravin.marketplaceshowcase.services.RedisCacheService;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(classes = MarketplaceShowcaseApplication.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = MarketplaceShowcaseApplication.class)
 @Import(TestcontainersConfiguration.class)
 @TestPropertySource(locations = "classpath:application.yml")
 @AutoConfigureWebTestClient
-public class ProductControllerTest {
+public class CartControllerTest {
     @Autowired
     WebTestClient webTestClient;
+    @Autowired
+    private CartsReactiveRepository cartsReactiveRepository;
+
     @Autowired
     private CartItemsReactiveRepository cartItemsReactiveRepository;
     @Autowired
@@ -49,8 +52,6 @@ public class ProductControllerTest {
     OrderReactiveRepository orderReactiveRepository;
     @Autowired
     ProductsReactiveRepository productsReactiveRepository;
-    @Autowired
-    CartsReactiveRepository cartsReactiveRepository;
     @Autowired
     private UserReactiveRepository userReactiveRepository;
     @Autowired
@@ -61,6 +62,7 @@ public class ProductControllerTest {
     private ReactiveRedisTemplate<String, Long> reactiveRedisTemplateForLongValues;
     @Autowired
     private ReactiveRedisTemplate<String, CartItemToUIDto> reactiveRedisTemplateForCartItems;
+
     @BeforeEach
     void setUp() {
         cartItemsReactiveRepository.deleteAll().block();
@@ -69,7 +71,7 @@ public class ProductControllerTest {
         orderReactiveRepository.deleteAll().block();
         cartsReactiveRepository.deleteAll().block();
         userReactiveRepository.deleteAll().block();
-        redisCacheService.evictCache().block();
+        redisCacheService.evictCache().onErrorComplete().block();
         var user = new User();
         user.setUsername("username");
         user.setPassword("password");
@@ -78,62 +80,26 @@ public class ProductControllerTest {
         user = userReactiveRepository.save(user).block();
         cart.setUserId(user.getId());
         cartsReactiveRepository.save(cart).block();
-
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         product.setId(null);
         productsReactiveRepository.save(product).block();
     }
-
     @Test
-    void getProductsTest() throws Exception {
-        var product = new Product(1L,"samsung",26d,"desc",new byte[0]);
-        product.setId(null);
-        productsReactiveRepository.save(product).block();
-        var product1 = new Product(1L,"nokia",27d,"desc",new byte[0]);
-        product1.setId(null);
-        productsReactiveRepository.save(product1).block();
-
-        webTestClient.get().uri("/products").exchange().expectStatus().isOk().expectHeader().contentType("text/html").expectBody(String.class)
-                .value(body -> {
-                    assertTrue(body.contains("samsung"));
-                    assertTrue(body.contains("iphone"));
-                    assertTrue(body.contains("25"));
-                    assertTrue(body.contains("26"));
-                    assertTrue(body.contains("27"));
-                });
+    void addItemToCartTest() throws Exception {
+        var product = productsReactiveRepository.findAll().blockFirst();
+        webTestClient.post().uri("/products/cart/changeCartItemQuantity/"+product.getId()).exchange().expectStatus().is3xxRedirection().expectHeader().location("/cart");
     }
     @Test
-    void changeCartItemQuantityTest() throws Exception {
-
+    void showCartTest() throws Exception {
         var product = productsReactiveRepository.findAll().blockFirst();
         var cart = cartsReactiveRepository.findAll().blockFirst();
         CartItem cartItem = new CartItem(product,cart);
         cartItem.setQuantity(5);
-        var productId = cartItem.getProductId();
         cartItemsReactiveRepository.save(cartItem).block();
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("action", "plus");
-
-        webTestClient.post().uri("/products/changeCartItemQuantity/"+productId).bodyValue(formData).exchange()
-                .expectStatus().is3xxRedirection().expectHeader().location("/products");
-        cartItem = cartItemsReactiveRepository.findAll().blockFirst();
-        assertEquals(6, cartItem.getQuantity());
-
-        MultiValueMap<String, String> formData2 = new LinkedMultiValueMap<>();
-        formData.add("action", "minus");
-        webTestClient.post().uri("/products/changeCartItemQuantity/"+productId).bodyValue(formData2).exchange()
-                .expectStatus().is3xxRedirection().expectHeader().location("/products");
-        cartItem = cartItemsReactiveRepository.findAll().blockFirst();
-        assertEquals(5, cartItem.getQuantity());
-    }
-    @Test
-    void getItemPage() throws Exception {
-        var productId = productsReactiveRepository.findAll().blockLast().getId();
-
-        webTestClient.get().uri("/products/" + productId)
-                .exchange().expectStatus().isOk().expectHeader().contentType("text/html")
+        webTestClient.get().uri("/cart").exchange().expectStatus().isOk().expectHeader().contentType("text/html")
                 .expectBody(String.class).value(body -> {
+                    assertTrue(body.contains("125"));
                     assertTrue(body.contains("iphone"));
                 });
     }

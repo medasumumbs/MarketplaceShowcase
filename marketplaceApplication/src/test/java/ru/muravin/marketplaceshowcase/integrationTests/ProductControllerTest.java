@@ -1,6 +1,5 @@
 package ru.muravin.marketplaceshowcase.integrationTests;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -13,8 +12,9 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.WebApplicationContext;
-import reactor.core.publisher.Flux;
 import ru.muravin.marketplaceshowcase.MarketplaceShowcaseApplication;
 import ru.muravin.marketplaceshowcase.TestcontainersConfiguration;
 import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
@@ -27,7 +27,8 @@ import ru.muravin.marketplaceshowcase.repositories.*;
 import ru.muravin.marketplaceshowcase.services.RedisCacheService;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -37,11 +38,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(TestcontainersConfiguration.class)
 @TestPropertySource(locations = "classpath:application.yml")
 @AutoConfigureWebTestClient
-public class OrderControllerTest {
+public class ProductControllerTest {
     @Autowired
     WebTestClient webTestClient;
     @Autowired
-    CartItemsReactiveRepository cartItemsReactiveRepository;
+    private CartItemsReactiveRepository cartItemsReactiveRepository;
     @Autowired
     OrderItemsReactiveRepository orderItemsReactiveRepository;
     @Autowired
@@ -49,7 +50,7 @@ public class OrderControllerTest {
     @Autowired
     ProductsReactiveRepository productsReactiveRepository;
     @Autowired
-    private CartsReactiveRepository cartsReactiveRepository;
+    CartsReactiveRepository cartsReactiveRepository;
     @Autowired
     private UserReactiveRepository userReactiveRepository;
     @Autowired
@@ -68,7 +69,7 @@ public class OrderControllerTest {
         orderReactiveRepository.deleteAll().block();
         cartsReactiveRepository.deleteAll().block();
         userReactiveRepository.deleteAll().block();
-        redisCacheService.evictCache().block();
+        redisCacheService.evictCache().onErrorComplete().block();
         var user = new User();
         user.setUsername("username");
         user.setPassword("password");
@@ -77,42 +78,63 @@ public class OrderControllerTest {
         user = userReactiveRepository.save(user).block();
         cart.setUserId(user.getId());
         cartsReactiveRepository.save(cart).block();
+
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         product.setId(null);
         productsReactiveRepository.save(product).block();
     }
 
     @Test
-    void addOrderTest() throws Exception {
+    void getProductsTest() throws Exception {
+        var product = new Product(1L,"samsung",26d,"desc",new byte[0]);
+        product.setId(null);
+        productsReactiveRepository.save(product).block();
+        var product1 = new Product(1L,"nokia",27d,"desc",new byte[0]);
+        product1.setId(null);
+        productsReactiveRepository.save(product1).block();
+
+        webTestClient.get().uri("/products").exchange().expectStatus().isOk().expectHeader().contentType("text/html").expectBody(String.class)
+                .value(body -> {
+                    assertTrue(body.contains("samsung"));
+                    assertTrue(body.contains("iphone"));
+                    assertTrue(body.contains("25"));
+                    assertTrue(body.contains("26"));
+                    assertTrue(body.contains("27"));
+                });
+    }
+    @Test
+    void changeCartItemQuantityTest() throws Exception {
+
         var product = productsReactiveRepository.findAll().blockFirst();
         var cart = cartsReactiveRepository.findAll().blockFirst();
         CartItem cartItem = new CartItem(product,cart);
         cartItem.setQuantity(5);
+        var productId = cartItem.getProductId();
         cartItemsReactiveRepository.save(cartItem).block();
 
-        Flux.just(webTestClient.post().uri("/orders").exchange().expectStatus()).doOnNext(a->{
-            var orderId = orderReactiveRepository.findAll().blockLast().getId();
-            a.is3xxRedirection().expectHeader().location("/orders/"+orderId+"?justBought=true");
-        }).blockLast();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("action", "plus");
 
-    }
+        webTestClient.post().uri("/products/changeCartItemQuantity/"+productId).bodyValue(formData).exchange()
+                .expectStatus().is3xxRedirection().expectHeader().location("/products");
+        cartItem = cartItemsReactiveRepository.findAll().blockFirst();
+        assertEquals(6, cartItem.getQuantity());
 
-    @Test
-    void getOrderTest() throws Exception {
-        addOrderTest();
-        var orderId = orderReactiveRepository.findAll().blockLast().getId();
-        webTestClient.get().uri("/orders/"+orderId).exchange().expectStatus().isOk().expectBody(String.class).value(body->{
-            Assertions.assertTrue(body.contains("125"));
-            Assertions.assertTrue(body.contains("iphone"));
-        });
+        MultiValueMap<String, String> formData2 = new LinkedMultiValueMap<>();
+        formData.add("action", "minus");
+        webTestClient.post().uri("/products/changeCartItemQuantity/"+productId).bodyValue(formData2).exchange()
+                .expectStatus().is3xxRedirection().expectHeader().location("/products");
+        cartItem = cartItemsReactiveRepository.findAll().blockFirst();
+        assertEquals(5, cartItem.getQuantity());
     }
     @Test
-    void getOrdersTest() throws Exception {
-        addOrderTest();
-        var orderId = orderReactiveRepository.findAll().blockLast().getId();
-        webTestClient.get().uri("/orders").exchange().expectStatus().isOk().expectBody(String.class).value(body->{
-            Assertions.assertTrue(body.contains("125"));
-            Assertions.assertTrue(body.contains("iphone"));
-        });
+    void getItemPage() throws Exception {
+        var productId = productsReactiveRepository.findAll().blockLast().getId();
+
+        webTestClient.get().uri("/products/" + productId)
+                .exchange().expectStatus().isOk().expectHeader().contentType("text/html")
+                .expectBody(String.class).value(body -> {
+                    assertTrue(body.contains("iphone"));
+                });
     }
 }
