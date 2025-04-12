@@ -16,6 +16,9 @@
     <a th:href="@{/products/uploadCSV}" style="float:right;">
         <b>Импорт CSV &cudarrr;</b>
     </a>
+    <form method="POST" th:action="@{/logout}">
+        <button name="action" >Выйти</button>
+    </form>
     <table style="width:70%;margin-left:auto;margin-right:auto;">
         <tr>
             <td>

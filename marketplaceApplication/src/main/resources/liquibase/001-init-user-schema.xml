@@ -35,12 +35,31 @@
             <column name="email" type="varchar(255)">
                 <constraints nullable="false" unique="true"/>
             </column>
+            <column name="authorities" type="varchar(2048)">
+                <constraints nullable="true"/>
+            </column>
         </createTable>
         <insert tableName="users">
             <column name="id" value="1"/>
             <column name="username" value="john_doe"/>
             <column name="email" value="john.doe@example.com"/>
-            <column name="password" value="123"/>
+            <!--Пароль 123 хешированный-->
+            <column name="password" value="$2a$10$gAN0lNkxP7yKeUcLTptCJ.rdlkoXV9q26uDEUFYV/0JzGmByZYB76"/>
+        </insert>
+        <insert tableName="users">
+            <column name="id" value="2"/>
+            <column name="username" value="jane"/>
+            <column name="email" value="Jane.Ivanova@example.com"/>
+            <!--Пароль 123 хешированный-->
+            <column name="password" value="$2a$10$gAN0lNkxP7yKeUcLTptCJ.rdlkoXV9q26uDEUFYV/0JzGmByZYB76"/>
+        </insert>
+        <insert tableName="users">
+            <column name="id" value="3"/>
+            <column name="username" value="admin"/>
+            <column name="email" value="admin@example.com"/>
+            <column name="authorities" value="ROLE_ADMIN"/>
+            <!--Пароль 123 хешированный-->
+            <column name="password" value="$2a$10$gAN0lNkxP7yKeUcLTptCJ.rdlkoXV9q26uDEUFYV/0JzGmByZYB76"/>
         </insert>
         <addDefaultValue tableName="users" columnName="id" defaultValueSequenceNext="user_sequence"/>
         <rollback>
