@@ -48,7 +48,6 @@ public class OrderService {
         }).defaultIfEmpty(0L);
     }
     @Transactional
-    //@PreAuthorize("#cart.id = @orderService.getCurrentUserId()")
     public Mono<Order> addOrder(Cart cart) {
         return cartService.getCartSumMono(Mono.just(cart.getId())).flatMap(cartSum -> {
             return paymentServiceClientAPI.usersUserIdMakePaymentPost(
@@ -83,12 +82,10 @@ public class OrderService {
         });
     }
 
-    //@PostAuthorize("returnObject.block().getUserId() = @orderService.getCurrentUserId()")
     public Mono<Order> findOrderById(Long id) {
         return orderReactiveRepository.findById(id)
                 .switchIfEmpty(Mono.error(new NoOrderException("Order not found")));
     }
-    //@PostAuthorize("returnObject.map() = @orderService.getCurrentUserId()")
     public Mono<OrderToUIDto> findOrderToUIDtoById(Long id) {
         Mono<List<OrderItemToUIDto>> orderItemsMono = orderItemsReactiveRepository.findAllByOrder_Id(id).collectList();
         Mono<Order> orderMono = findOrderById(id);

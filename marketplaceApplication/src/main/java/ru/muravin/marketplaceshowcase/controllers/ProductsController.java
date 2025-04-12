@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -15,6 +16,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 
+import ru.muravin.marketplaceshowcase.models.User;
 import ru.muravin.marketplaceshowcase.services.CartService;
 import ru.muravin.marketplaceshowcase.services.ProductsCSVService;
 import ru.muravin.marketplaceshowcase.services.ProductsService;
@@ -69,21 +71,26 @@ public class ProductsController {
         } else {
             countAllMono = productsService.countAll();
         }
-        return productsFlux.collectList().zipWith(countAllMono).flatMap(tuple -> {
-            var productsPage = tuple.getT1();
-            var countAll = tuple.getT2();
-            HashMap<String, Object> params = new HashMap<>();
-            System.out.println(productsPage);
-            params.put("products", productsPage);
-            params.put("search", search);
-            params.put("sort", sort);
-            params.put("pageNumber", pageNumber);
-            params.put("pageSize", pageSize);
-            params.put("lastPageNumber", Math.ceil((double)countAll/pageSize));
-            System.out.println("lastPageNumber=" + params.get("lastPageNumber") + " pageNumber=" + params.get("pageNumber") + " pageSize=" + params.get("pageSize") + "countAll=" + countAll);
-            model.addAllAttributes(params);
-            return Mono.just(Rendering.view("main").modelAttributes(params).build());
-        });
+        return isCurrentUserAdmin().flatMap(
+                isAdmin-> getCurrentUserId().flatMap(currentUserId -> {
+                        return productsFlux.collectList().zipWith(countAllMono).flatMap(tuple -> {
+                        var productsPage = tuple.getT1();
+                        var countAll = tuple.getT2();
+                        HashMap<String, Object> params = new HashMap<>();
+                        System.out.println(productsPage);
+                        params.put("products", productsPage);
+                        params.put("search", search);
+                        params.put("sort", sort);
+                        params.put("pageNumber", pageNumber);
+                        params.put("pageSize", pageSize);
+                        params.put("lastPageNumber", Math.ceil((double)countAll/pageSize));
+                        params.put("userId", currentUserId);
+                        params.put("isAdmin", isAdmin);
+                        System.out.println("lastPageNumber=" + params.get("lastPageNumber") + " pageNumber=" + params.get("pageNumber") + " pageSize=" + params.get("pageSize") + "countAll=" + countAll);
+                        model.addAllAttributes(params);
+                        return Mono.just(Rendering.view("main").modelAttributes(params).build());
+                    });
+                }));
     }
 
     @PostMapping(value = "/changeCartItemQuantity/{id}")
@@ -151,9 +158,13 @@ public class ProductsController {
 
     @GetMapping("/{id}")
     public Mono<Rendering> itemPage(@PathVariable(name = "id") Long id) {
-        return productsService.findById(id)
-                .flatMap(productToUIDto ->
-                        Mono.just(Rendering.view("item").modelAttribute("product",productToUIDto).build()));
+        return getCurrentUserId().flatMap(userId->{
+            return productsService.findById(id)
+                .flatMap(productToUIDto ->{
+                        return Mono.just(Rendering.view("item")
+                                .modelAttribute("product",productToUIDto)
+                                .modelAttribute("userId", userId).build());});
+        });
     }
 
     @ExceptionHandler({IOException.class, CsvValidationException.class})
@@ -167,4 +178,20 @@ public class ProductsController {
         return Mono.just(Rendering.view("errorPage").modelAttribute("message", "Неизвестная ошибка: " + exception.getMessage()).build());
     }
 
+    public Mono<Long> getCurrentUserId() {
+        return ReactiveSecurityContextHolder.getContext().map(securityContext -> {
+            return ((User)securityContext.getAuthentication().getPrincipal()).getId();
+        }).defaultIfEmpty(0L);
+    }
+    public Mono<Boolean> isCurrentUserAdmin() {
+        return ReactiveSecurityContextHolder.getContext().map(securityContext -> {
+            var auth = securityContext.getAuthentication();
+            if (auth == null) {
+                return false;
+            }
+            var adminAuthority = auth.getAuthorities()
+                   .stream().filter(authority -> authority.getAuthority().equals("ROLE_ADMIN")).findFirst();
+           return adminAuthority.isPresent();
+        }).switchIfEmpty(Mono.just(false));
+    }
 }

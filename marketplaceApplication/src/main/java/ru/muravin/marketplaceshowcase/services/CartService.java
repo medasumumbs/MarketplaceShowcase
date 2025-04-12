@@ -85,12 +85,10 @@ public class CartService {
         });
     }
 
-  //  @PreAuthorize("#id = @cartService.getCurrentUserId()")
     public Mono<Cart> getCartById(long id) {
         return cartsReactiveRepository.findById(id);
     }
 
-  // @PreAuthorize("#cart.id = @cartService.getCurrentUserId()")
     public Mono<Void> deleteAllItemsByCart(Cart cart) {
         return cartItemsReactiveRepository.deleteByCartId(cart.getId());
     }
@@ -99,21 +97,17 @@ public class CartService {
         return cartsReactiveRepository.findAll().elementAt(0).map(Cart::getId);
     }
 
-   // @PreAuthorize("#cart.id = @cartService.getCurrentUserId()")
     public Flux<CartItem> getCartItemsFlux(Cart cart) {
         return getCartItemsFlux(Mono.just(cart.getId()));
     }
 
-  //  @PreAuthorize("#cartId.block() = @cartService.getCurrentUserId()")
     public Flux<CartItem> getCartItemsFlux(Mono<Long> cartId) {
         return cartId.flatMapMany(cartItemsReactiveRepository::findAllByCart_Id).map(CartItemToUIDto::toCartItem);
     }
-   // @PreAuthorize("#cartId = @cartService.getCurrentUserId()")
     public Mono<CartItem> getCartItemMono(Long cartId, Long productId) {
         return cartItemsReactiveRepository.findByProductIdAndCartId(productId, cartId);
     }
 
-   // @PreAuthorize("#cartId.block() = @cartService.getCurrentUserId()")
     public Flux<CartItemToUIDto> getCartItemsDtoFlux(Mono<Long> cartId) {
         return redisCacheService.getCartItemsCache(String.valueOf(cartId.subscribe())).switchIfEmpty(
             getCartItemsDtoFluxFromRepo(cartId).collectList().publishOn(Schedulers.boundedElastic()).flatMap(a -> {
@@ -123,7 +117,6 @@ public class CartService {
         );
     }
 
-   // @PreAuthorize("#cartId.block() = @cartService.getCurrentUserId()")
     public Flux<CartItemToUIDto> getCartItemsDtoFluxFromRepo(Mono<Long> cartId) {
         return getCartItemsFlux(cartId).flatMap(cartItem -> {
             return productsReactiveRepository.findById(cartItem.getProductId()).zipWith(Mono.just(cartItem));
@@ -133,7 +126,6 @@ public class CartService {
             return new CartItemToUIDto(cartItem, new ProductToUIDto(product));
         });
     }
-   // @PreAuthorize("#cartId.block() = @cartService.getCurrentUserId()")
     public Mono<Double> getCartSumMono(Mono<Long> cartId) {
         Double sum = (double) 0;
         return getCartItemsDtoFlux(cartId).reduce(

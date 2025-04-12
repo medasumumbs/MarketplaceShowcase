@@ -8,12 +8,14 @@
 
 <body>
 
-    <a href="/orders" style="float:right;">
-        <b>ЗАКАЗЫ &cudarrr;</b>
-    </a>
-    <a href="/cart" style="float:right;">
-        <b>КОРЗИНА &cudarrr;</b>
-    </a>
+    <div th:if="${userId != 0}">
+        <a href="/orders" style="float:right;">
+            <b>ЗАКАЗЫ &cudarrr;</b>
+        </a>
+        <a href="/cart" style="float:right;">
+            <b>КОРЗИНА &cudarrr;</b>
+        </a>
+    </div>
     <a href="/products" style="float:right;">
         <b>ГЛАВНАЯ &cudarrr;</b>
     </a>
@@ -28,7 +30,7 @@
         <p>
             <span th:text="${product.getDescription()}"></span>
         </p>
-        <form th:action="@{/products/{id}/changeCartItemQuantity/{id}(id=${product.id})}" method="post">
+        <form  th:if="${userId != 0}" th:action="@{/products/{id}/changeCartItemQuantity/{id}(id=${product.id})}" method="post">
             <button name="action" value="minus">-</button>
             <span th:text="${product.quantityInCart}"></span>
             <button name="action" value="plus">+</button>

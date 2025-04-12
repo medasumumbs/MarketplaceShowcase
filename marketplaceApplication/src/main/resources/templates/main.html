@@ -7,13 +7,15 @@
 </head>
 
 <body>
-    <a th:href="@{/orders}" style="float:right;">
-        <b>ЗАКАЗЫ &cudarrr;</b>
-    </a>
-    <a th:href="@{/cart}" style="float:right;">
-        <b>КОРЗИНА &cudarrr;</b>
-    </a>
-    <a th:href="@{/products/uploadCSV}" style="float:right;">
+    <div th:if="${userId != 0}">
+        <a th:href="@{/orders}" style="float:right;">
+            <b>ЗАКАЗЫ &cudarrr;</b>
+        </a>
+        <a th:href="@{/cart}" style="float:right;">
+            <b>КОРЗИНА &cudarrr;</b>
+        </a>
+    </div>
+    <a th:if="${isAdmin}" th:href="@{/products/uploadCSV}" style="float:right;">
         <b>Импорт CSV &cudarrr;</b>
     </a>
     <form method="POST" th:action="@{/logout}">
@@ -78,7 +80,7 @@
                 </tr>
                 <tr>
                     <td>
-                        <form th:action="@{/products/changeCartItemQuantity/{id}(id=${product.id})}" method="post">
+                        <form th:if="${userId != 0}" th:action="@{/products/changeCartItemQuantity/{id}(id=${product.id})}" method="post">
                             <button name="action" value="minus">-</button>
                             <span th:text="${product.quantityInCart}"></span>
                             <button name="action" value="plus">+</button>
