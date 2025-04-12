@@ -2,6 +2,9 @@ package ru.muravin.marketplaceshowcase.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -11,6 +14,7 @@ import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 import ru.muravin.marketplaceshowcase.exceptions.UnknownProductException;
 import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.Product;
+import ru.muravin.marketplaceshowcase.models.User;
 import ru.muravin.marketplaceshowcase.repositories.ProductsReactiveRepository;
 
 import java.util.HashMap;
@@ -60,6 +64,7 @@ public class ProductsService {
         return getProductToUIDtoFlux(productFlux);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     public Mono<Void> save(ProductToUIDto productToUIDto) {
         return productsReactiveRepository.save(productToUIDto.transformToProduct()).doOnError(System.out::println).then();
     }
@@ -123,8 +128,7 @@ public class ProductsService {
                 .map(ProductToUIDto::new) // Преобразуем Product в ProductToUIDto
                 .switchIfEmpty(Mono.error(() -> new UnknownProductException("Product " + id + " not found")));
 
-        // Поток для элемента корзины
-        var cartItemMono = cartService.getFirstCartIdMono()
+        var cartItemMono = getCurrentUserId()
                 .flatMap(cartId -> {
                     return cartService.getCartItemMono(cartId, id);
                 }).defaultIfEmpty(new CartItem());
@@ -157,7 +161,7 @@ public class ProductsService {
 
     private Flux<ProductToUIDto> getProductToUIDtoFlux(Flux<Product> productFlux) {
         var products = productFlux.map(ProductToUIDto::new).collectList();
-        var cartItems = cartService.getCartItemsFlux(cartService.getFirstCartIdMono()).collectList();
+        var cartItems = cartService.getCartItemsFlux(getCurrentUserId()).collectList();
         return Mono.zip(products, cartItems).flatMapMany(tuple -> {
             enrichDtoListWithCartQuantities(tuple.getT1(), tuple.getT2());
             return Flux.fromIterable(tuple.getT1());
@@ -167,5 +171,11 @@ public class ProductsService {
     public Mono<Void> saveAll(List<ProductToUIDto> products) {
         var productsEntities = products.stream().map(ProductToUIDto::transformToProduct).toList();
         return productsReactiveRepository.saveAll(productsEntities).then();
+    }
+
+    public Mono<Long> getCurrentUserId() {
+        return ReactiveSecurityContextHolder.getContext().map(securityContext -> {
+            return ((User)securityContext.getAuthentication().getPrincipal()).getId();
+        }).defaultIfEmpty(0L);
     }
 }

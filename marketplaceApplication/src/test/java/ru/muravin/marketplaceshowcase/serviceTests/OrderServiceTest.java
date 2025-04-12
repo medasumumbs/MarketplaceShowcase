@@ -122,7 +122,7 @@ public class OrderServiceTest {
                 new PaymentResponse().restBalance(100.00f).message("OK")
         ));
         when(cartService.getCartSumMono(any())).thenReturn(Mono.just(Double.valueOf("50")));
-        when(redisCacheService.evictCartCache()).thenReturn(Mono.just(2l));
+        when(redisCacheService.evictCartCache(1)).thenReturn(Mono.just(2l));
         Cart cart = new Cart();
         cart.setId(1L);
         cart.setUserId(1L);

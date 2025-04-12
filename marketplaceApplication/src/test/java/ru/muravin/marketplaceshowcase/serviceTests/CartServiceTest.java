@@ -42,7 +42,7 @@ public class CartServiceTest {
 
     @Test
     void addCartItemTest() {
-        when(redisCacheService.evictCartCache()).thenReturn(Mono.just(2l));
+        when(redisCacheService.evictCartCache(1)).thenReturn(Mono.just(2l));
 
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         when(productsReactiveRepository.findById(1L)).thenReturn(Mono.just(product));
@@ -78,7 +78,7 @@ public class CartServiceTest {
 
     @Test
     void removeCartItemTest() {
-        when(redisCacheService.evictCartCache()).thenReturn(Mono.just(2l));
+        when(redisCacheService.evictCartCache(1)).thenReturn(Mono.just(2l));
 
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         when(productsReactiveRepository.findById(1L)).thenReturn(Mono.just(product));

@@ -28,10 +28,13 @@ public class User implements UserDetails {
 
     private String email;
 
-    private String authorities;
+    private String authorities = "";
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (authorities.isEmpty()) {
+            return Arrays.asList(new SimpleGrantedAuthority("ROLE_USER"));
+        }
         return Arrays.stream(authorities.split(",")).map(SimpleGrantedAuthority::new).collect(Collectors.toList());
     }
 

@@ -2,15 +2,18 @@ package ru.muravin.marketplaceshowcase.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.*;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import ru.muravin.marketplaceshowcase.dto.CartItemToUIDto;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
+import ru.muravin.marketplaceshowcase.models.User;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class RedisCacheService {
@@ -67,14 +70,6 @@ public class RedisCacheService {
         var opsForValue = reactiveRedisTemplateForLongValues.opsForValue();
         return opsForValue.get(getKeyForProductsCount(nameFilter));
     }
-
-    private String getKeyForProductsCount(String nameFilter) {
-        return REDIS_KEY_PRODUCTS + ":products_count:" + nameFilter;
-    }
-
-    private static String getKeyForProductsList(String nameFilter, String sort, Integer limit, Integer offset) {
-        return REDIS_KEY_PRODUCTS + ":products_list:" + nameFilter + ":" + limit + ":" + offset + ":" + sort;
-    }
     private String getKeyForProduct(String productId) {
         return REDIS_KEY_PRODUCTS + ":product:" + productId;
     }
@@ -93,14 +88,28 @@ public class RedisCacheService {
     }
 
     private String getKeyForCartItems(String cartId) {
-        return REDIS_KEY_PRODUCTS + ":cart:" + cartId;
+        return REDIS_KEY_PRODUCTS + ":userId:" + getCurrentUserId().subscribe() + ":cart:" + cartId;
     }
 
-    public Mono<Long> evictCartCache() {
-        return reactiveRedisTemplate.delete(getKeyForCartItems("1"));
+    private String getKeyForProductsCount(String nameFilter) {
+        return REDIS_KEY_PRODUCTS + ":userId:" + getCurrentUserId().subscribe() + ":products_count:" + nameFilter;
+    }
+
+    private String getKeyForProductsList(String nameFilter, String sort, Integer limit, Integer offset) {
+        return REDIS_KEY_PRODUCTS + ":userId:" + getCurrentUserId().subscribe() + ":products_list:" + nameFilter + ":" + limit + ":" + offset + ":" + sort;
+    }
+    public Mono<Long> evictCartCache(Integer cartId) {
+        return reactiveRedisTemplate.delete(getKeyForCartItems(String.valueOf(cartId)));
     }
 
     public Mono<Long> evictCache() {
         return reactiveRedisTemplate.keys("*").flatMap(reactiveRedisTemplate::delete).count();
+    }
+
+
+    public Mono<Long> getCurrentUserId() {
+        return ReactiveSecurityContextHolder.getContext().map(securityContext -> {
+            return ((User)securityContext.getAuthentication().getPrincipal()).getId();
+        });
     }
 }

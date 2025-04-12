@@ -124,5 +124,13 @@
             <column name="id" valueSequenceNext="cart_sequence"/>
             <column name="user_id" value="1"/>
         </insert>
+        <insert runAlways="true" tableName="carts">
+            <column name="id" valueSequenceNext="cart_sequence"/>
+            <column name="user_id" value="2"/>
+        </insert>
+        <insert runAlways="true" tableName="carts">
+            <column name="id" valueSequenceNext="cart_sequence"/>
+            <column name="user_id" value="3"/>
+        </insert>
     </changeSet>
 </databaseChangeLog>

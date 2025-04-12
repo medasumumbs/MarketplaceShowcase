@@ -1,5 +1,9 @@
 package ru.muravin.marketplaceshowcase.services;
 
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -10,6 +14,7 @@ import ru.muravin.marketplaceshowcase.exceptions.NoOrderException;
 import ru.muravin.marketplaceshowcase.models.Cart;
 import ru.muravin.marketplaceshowcase.models.Order;
 import ru.muravin.marketplaceshowcase.models.OrderItem;
+import ru.muravin.marketplaceshowcase.models.User;
 import ru.muravin.marketplaceshowcase.paymentServiceClient.api.PaymentServiceClientAPI;
 import ru.muravin.marketplaceshowcase.repositories.*;
 
@@ -37,7 +42,17 @@ public class OrderService {
         this.paymentServiceClientAPI = paymentServiceClientAPI;
     }
 
+    public Integer getCurrentUserId() {
+
+        var context = ReactiveSecurityContextHolder.getContext().block();
+        if (context == null) {
+            return null;
+        }
+        return Math.toIntExact(((User) context.getAuthentication().getPrincipal()).getId());
+    }
+
     @Transactional
+    @PreAuthorize("#cart.id = @orderService.getCurrentUserId()")
     public Mono<Order> addOrder(Cart cart) {
         return cartService.getCartSumMono(Mono.just(cart.getId())).flatMap(cartSum -> {
             return paymentServiceClientAPI.usersUserIdMakePaymentPost(
@@ -64,16 +79,18 @@ public class OrderService {
                             return orderItemsReactiveRepository.saveAll(entities).then();
                         })
                         .then(cartService.deleteAllItemsByCart(cart))
-                        .then(redisCacheService.evictCartCache())
+                        .then(redisCacheService.evictCartCache(Math.toIntExact(getCurrentUserId())))
                         .then(Mono.just(order));
             });
         });
     }
 
+    @PostAuthorize("returnObject.block().getUserId() = @orderService.getCurrentUserId()")
     public Mono<Order> findOrderById(Long id) {
         return orderReactiveRepository.findById(id)
                 .switchIfEmpty(Mono.error(new NoOrderException("Order not found")));
     }
+    @PostAuthorize("returnObject.block().getUserId() = @orderService.getCurrentUserId()")
     public Mono<OrderToUIDto> findOrderToUIDtoById(Long id) {
         Mono<List<OrderItemToUIDto>> orderItemsMono = orderItemsReactiveRepository.findAllByOrder_Id(id).collectList();
         Mono<Order> orderMono = findOrderById(id);
@@ -89,7 +106,7 @@ public class OrderService {
         });
     }
     public Flux<OrderToUIDto> findAll() {
-        return orderReactiveRepository.findAll().flatMap(order -> {
+        return orderReactiveRepository.findAllByUserId(Long.valueOf(getCurrentUserId())).flatMap(order -> {
             return orderItemsReactiveRepository
                 .findAllByOrder_Id(order.getId()).collectList()
                 .flatMap((orderItems -> {
@@ -104,4 +121,5 @@ public class OrderService {
                 }));
         });
     }
+
 }

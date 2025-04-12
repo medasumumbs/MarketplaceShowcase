@@ -6,6 +6,7 @@ import com.opencsv.bean.ColumnPositionMappingStrategy;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.exceptions.CsvValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Mono;
@@ -31,6 +32,7 @@ public class ProductsCSVService {
         this.redisCacheService = redisCacheService;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     public Mono<String> uploadCSV(byte[] csvFile) {
         return Mono.using(
                 () -> new CSVReaderBuilder(
