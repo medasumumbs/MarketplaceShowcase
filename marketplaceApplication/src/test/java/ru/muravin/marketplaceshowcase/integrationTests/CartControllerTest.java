@@ -9,6 +9,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +31,8 @@ import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.models.User;
 import ru.muravin.marketplaceshowcase.repositories.*;
 import ru.muravin.marketplaceshowcase.services.RedisCacheService;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -76,6 +82,7 @@ public class CartControllerTest {
         user.setUsername("username");
         user.setPassword("password");
         user.setEmail("abc@gmail.com");
+        user.setAuthorities("ROLE_USER");
         var cart = new Cart();
         user = userReactiveRepository.save(user).block();
         cart.setUserId(user.getId());
@@ -83,11 +90,24 @@ public class CartControllerTest {
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         product.setId(null);
         productsReactiveRepository.save(product).block();
+        webTestClient.mutateWith(SecurityMockServerConfigurers.mockAuthentication(null));
     }
     @Test
     void addItemToCartTest() throws Exception {
         var product = productsReactiveRepository.findAll().blockFirst();
-        webTestClient.post().uri("/products/cart/changeCartItemQuantity/"+product.getId()).exchange().expectStatus().is3xxRedirection().expectHeader().location("/cart");
+        var user = userReactiveRepository.findAll().blockFirst();
+        var auth = new UsernamePasswordAuthenticationToken(user, user.getPassword(), user.getAuthorities());
+        webTestClient.mutateWith(SecurityMockServerConfigurers.mockAuthentication(auth))
+                .post().uri("/products/cart/changeCartItemQuantity/"+product.getId())
+                .exchange().expectStatus().is3xxRedirection().expectHeader().location("/cart");
+    }
+
+    @Test
+    void addItemToCartNoAuthTest() throws Exception {
+        var product = productsReactiveRepository.findAll().blockFirst();
+        webTestClient
+                .post().uri("/products/cart/changeCartItemQuantity/"+product.getId())
+                .exchange().expectStatus().is3xxRedirection().expectHeader().location("/login");
     }
     @Test
     void showCartTest() throws Exception {
