@@ -26,11 +26,11 @@ public class DefaultApiController implements DefaultApi {
         if (userId == null) {
             return Mono.just(ResponseEntity.notFound().build());
         }
-        if (userId != 1) {
+        if ((userId > 3) || (userId <= 0)) {
             return Mono.just(ResponseEntity.notFound().build());
         }
         Balance balance = new Balance();
-        balance.setBalance(10000.25f);
+        balance.setBalance(10000.25f * userId);
         return Mono.just(ResponseEntity.ok().body(balance));
     }
 
@@ -39,12 +39,12 @@ public class DefaultApiController implements DefaultApi {
         if (userId == null) {
             return Mono.just(ResponseEntity.notFound().build());
         }
-        if (userId != 1) {
+        if ((userId > 3) || (userId <= 0)) {
             return Mono.just(ResponseEntity.notFound().build());
         }
         PaymentResponse paymentResponse = new PaymentResponse();
         paymentResponse.setMessage("OK");
-        var restBalance = 10000.25f - sum;
+        var restBalance = (10000.25f*userId) - sum;
         paymentResponse.setRestBalance(restBalance);
         if (restBalance < 0) {
             paymentResponse.setMessage("Превышена максимально возможная сумма платежа");

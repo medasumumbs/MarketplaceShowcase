@@ -1,5 +1,6 @@
 package ru.muravin.marketplaceshowcase.controllers;
 
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -7,6 +8,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.OrderToUIDto;
+import ru.muravin.marketplaceshowcase.models.User;
 import ru.muravin.marketplaceshowcase.services.CartService;
 import ru.muravin.marketplaceshowcase.services.OrderService;
 
@@ -23,10 +25,14 @@ public class OrderController {
         this.cartService = cartService;
         this.orderService = orderService;
     }
-
+    public Mono<Long> getCurrentUserId() {
+        return ReactiveSecurityContextHolder.getContext().map(securityContext -> {
+            return ((User)securityContext.getAuthentication().getPrincipal()).getId();
+        }).defaultIfEmpty(0L);
+    }
     @PostMapping
     public Mono<Rendering> addOrder() {
-        return cartService.getFirstCartIdMono()
+        return getCurrentUserId()
                 .flatMap(cartService::getCartById)
                 .flatMap(orderService::addOrder)
                 .map((order) -> {
@@ -37,6 +43,7 @@ public class OrderController {
                     } else if (e.getMessage().contains("404")) {
                         return new RuntimeException("Пользователь не найден");
                     } else {
+                        System.out.println(e.getMessage());
                         return new RuntimeException("Платежный сервис временно недоступен");
                     }
                 }).onErrorResume(error -> {

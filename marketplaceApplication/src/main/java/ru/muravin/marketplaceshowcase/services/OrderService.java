@@ -42,17 +42,13 @@ public class OrderService {
         this.paymentServiceClientAPI = paymentServiceClientAPI;
     }
 
-    public Integer getCurrentUserId() {
-
-        var context = ReactiveSecurityContextHolder.getContext().block();
-        if (context == null) {
-            return null;
-        }
-        return Math.toIntExact(((User) context.getAuthentication().getPrincipal()).getId());
+    public Mono<Long> getCurrentUserId() {
+        return ReactiveSecurityContextHolder.getContext().map(securityContext -> {
+            return ((User)securityContext.getAuthentication().getPrincipal()).getId();
+        }).defaultIfEmpty(0L);
     }
-
     @Transactional
-    @PreAuthorize("#cart.id = @orderService.getCurrentUserId()")
+    //@PreAuthorize("#cart.id = @orderService.getCurrentUserId()")
     public Mono<Order> addOrder(Cart cart) {
         return cartService.getCartSumMono(Mono.just(cart.getId())).flatMap(cartSum -> {
             return paymentServiceClientAPI.usersUserIdMakePaymentPost(
@@ -65,9 +61,9 @@ public class OrderService {
                 return Mono.error(()-> new NoOrderException(paymentResponse.getMessage()));
             });
         }).flatMap(ok -> {
-            return userReactiveRepository.findAll().next().flatMap((user)->{
+            return getCurrentUserId().flatMap((userId)->{
                 Order order = new Order();
-                order.setUserId(user.getId());
+                order.setUserId(userId);
                 order.setOrderDate(LocalDateTime.now());
                 return orderReactiveRepository.save(order);
             }).flatMap(order -> {
@@ -79,18 +75,20 @@ public class OrderService {
                             return orderItemsReactiveRepository.saveAll(entities).then();
                         })
                         .then(cartService.deleteAllItemsByCart(cart))
-                        .then(redisCacheService.evictCartCache(Math.toIntExact(getCurrentUserId())))
+                        .then(getCurrentUserId().map(id -> {
+                            return redisCacheService.evictCartCache(Math.toIntExact(id));
+                        }))
                         .then(Mono.just(order));
             });
         });
     }
 
-    @PostAuthorize("returnObject.block().getUserId() = @orderService.getCurrentUserId()")
+    //@PostAuthorize("returnObject.block().getUserId() = @orderService.getCurrentUserId()")
     public Mono<Order> findOrderById(Long id) {
         return orderReactiveRepository.findById(id)
                 .switchIfEmpty(Mono.error(new NoOrderException("Order not found")));
     }
-    @PostAuthorize("returnObject.block().getUserId() = @orderService.getCurrentUserId()")
+    //@PostAuthorize("returnObject.map() = @orderService.getCurrentUserId()")
     public Mono<OrderToUIDto> findOrderToUIDtoById(Long id) {
         Mono<List<OrderItemToUIDto>> orderItemsMono = orderItemsReactiveRepository.findAllByOrder_Id(id).collectList();
         Mono<Order> orderMono = findOrderById(id);
@@ -106,7 +104,7 @@ public class OrderService {
         });
     }
     public Flux<OrderToUIDto> findAll() {
-        return orderReactiveRepository.findAllByUserId(Long.valueOf(getCurrentUserId())).flatMap(order -> {
+        return getCurrentUserId().flatMapMany(orderReactiveRepository::findAllByUserId).flatMap(order -> {
             return orderItemsReactiveRepository
                 .findAllByOrder_Id(order.getId()).collectList()
                 .flatMap((orderItems -> {
