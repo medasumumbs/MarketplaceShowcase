@@ -24,28 +24,25 @@ public class CartService {
     private final CartsReactiveRepository cartsReactiveRepository;
     private final CartItemsReactiveRepository cartItemsReactiveRepository;
     private final RedisCacheService redisCacheService;
+    private final CurrentUserService currentUserService;
 
-    public Mono<Long> getCurrentUserId() {
-        return ReactiveSecurityContextHolder.getContext().map(securityContext -> {
-            return ((User)securityContext.getAuthentication().getPrincipal()).getId();
-        }).defaultIfEmpty(0L);
-    }
     @Autowired
     public CartService(CartsReactiveRepository cartsReactiveRepository,
                        CartItemsReactiveRepository cartItemsReactiveRepository,
                        ProductsReactiveRepository productsReactiveRepository,
-                       RedisCacheService redisCacheService) {
+                       RedisCacheService redisCacheService, CurrentUserService currentUserService) {
         this.cartsReactiveRepository = cartsReactiveRepository;
         this.cartItemsReactiveRepository = cartItemsReactiveRepository;
         this.productsReactiveRepository = productsReactiveRepository;
         this.redisCacheService = redisCacheService;
+        this.currentUserService = currentUserService;
     }
 
     public Mono<Void> addCartItem(Long productId) {
-        return getCurrentUserId().map(id->{
+        return currentUserService.getCurrentUserId().map(id->{
             redisCacheService.evictCartCache(Math.toIntExact(id)).subscribe();
             return id;
-        }).flatMap(cartId -> {
+        }).flatMap(userId->this.getCartByUserId(userId).map(Cart::getId)).flatMap(cartId -> {
             var productMono = productsReactiveRepository.findById(productId);
             productMono = productMono.switchIfEmpty(Mono.error(() -> new UnknownProductException("Product "+productId+" not found")));
             return productMono.flatMap(
@@ -62,11 +59,11 @@ public class CartService {
     }
 
     public Mono<Void> removeCartItem(Long productId) {
-        return getCurrentUserId().map(
+        return currentUserService.getCurrentUserId().map(
                 cartId-> {
                     redisCacheService.evictCartCache(Math.toIntExact(cartId));
                     return cartId;
-                }).flatMap(cartId -> {
+                }).flatMap(userId->this.getCartByUserId(userId).map(Cart::getId)).flatMap(cartId -> {
             var productMono = productsReactiveRepository.findById(productId);
             productMono = productMono.switchIfEmpty(Mono.error(() -> new UnknownProductException("Product "+productId+" not found")));
             return productMono.flatMap(
@@ -132,5 +129,9 @@ public class CartService {
                 sum,
                 (accumulator, item) -> accumulator + item.getQuantity()*item.getProduct().getPrice()
         );
+    }
+
+    public Mono<Cart> getCartByUserId(Long userId) {
+        return cartsReactiveRepository.findByUserId(userId);
     }
 }

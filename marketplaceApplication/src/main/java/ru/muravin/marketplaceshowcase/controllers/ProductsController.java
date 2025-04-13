@@ -17,10 +17,7 @@ import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.ProductToUIDto;
 
 import ru.muravin.marketplaceshowcase.models.User;
-import ru.muravin.marketplaceshowcase.services.CartService;
-import ru.muravin.marketplaceshowcase.services.ProductsCSVService;
-import ru.muravin.marketplaceshowcase.services.ProductsService;
-import ru.muravin.marketplaceshowcase.services.RedisCacheService;
+import ru.muravin.marketplaceshowcase.services.*;
 
 import java.io.*;
 import java.util.*;
@@ -32,13 +29,15 @@ public class ProductsController {
     private final CartService cartService;
     private final ProductsCSVService productsCSVService;
     private final RedisCacheService redisCacheService;
+    private final CurrentUserService currentUserService;
 
     @Autowired
-    public ProductsController(ProductsService productsService, CartService cartService, ProductsCSVService productsCSVService, RedisCacheService redisCacheService){
+    public ProductsController(ProductsService productsService, CartService cartService, ProductsCSVService productsCSVService, RedisCacheService redisCacheService, CurrentUserService currentUserService){
         this.productsService = productsService;
         this.cartService = cartService;
         this.productsCSVService = productsCSVService;
         this.redisCacheService = redisCacheService;
+        this.currentUserService = currentUserService;
     }
 
     @GetMapping(produces = MediaType.TEXT_HTML_VALUE + ";charset=UTF-8")
@@ -71,8 +70,8 @@ public class ProductsController {
         } else {
             countAllMono = productsService.countAll();
         }
-        return isCurrentUserAdmin().flatMap(
-                isAdmin-> getCurrentUserId().flatMap(currentUserId -> {
+        return currentUserService.isCurrentUserAdmin().flatMap(
+                isAdmin-> currentUserService.getCurrentUserId().flatMap(currentUserId -> {
                         return productsFlux.collectList().zipWith(countAllMono).flatMap(tuple -> {
                         var productsPage = tuple.getT1();
                         var countAll = tuple.getT2();
@@ -158,7 +157,7 @@ public class ProductsController {
 
     @GetMapping("/{id}")
     public Mono<Rendering> itemPage(@PathVariable(name = "id") Long id) {
-        return getCurrentUserId().flatMap(userId->{
+        return currentUserService.getCurrentUserId().flatMap(userId->{
             return productsService.findById(id)
                 .flatMap(productToUIDto ->{
                         return Mono.just(Rendering.view("item")
@@ -178,20 +177,5 @@ public class ProductsController {
         return Mono.just(Rendering.view("errorPage").modelAttribute("message", "Неизвестная ошибка: " + exception.getMessage()).build());
     }
 
-    public Mono<Long> getCurrentUserId() {
-        return ReactiveSecurityContextHolder.getContext().map(securityContext -> {
-            return ((User)securityContext.getAuthentication().getPrincipal()).getId();
-        }).defaultIfEmpty(0L);
-    }
-    public Mono<Boolean> isCurrentUserAdmin() {
-        return ReactiveSecurityContextHolder.getContext().map(securityContext -> {
-            var auth = securityContext.getAuthentication();
-            if (auth == null) {
-                return false;
-            }
-            var adminAuthority = auth.getAuthorities()
-                   .stream().filter(authority -> authority.getAuthority().equals("ROLE_ADMIN")).findFirst();
-           return adminAuthority.isPresent();
-        }).switchIfEmpty(Mono.just(false));
-    }
+
 }

@@ -10,6 +10,7 @@ import reactor.core.publisher.Mono;
 import ru.muravin.marketplaceshowcase.dto.OrderToUIDto;
 import ru.muravin.marketplaceshowcase.models.User;
 import ru.muravin.marketplaceshowcase.services.CartService;
+import ru.muravin.marketplaceshowcase.services.CurrentUserService;
 import ru.muravin.marketplaceshowcase.services.OrderService;
 
 import java.net.URI;
@@ -20,20 +21,17 @@ import java.util.Map;
 public class OrderController {
     private final CartService cartService;
     private final OrderService orderService;
+    private final CurrentUserService currentUserService;
 
-    public OrderController(CartService cartService, OrderService orderService) {
+    public OrderController(CartService cartService, OrderService orderService, CurrentUserService currentUserService) {
         this.cartService = cartService;
         this.orderService = orderService;
-    }
-    public Mono<Long> getCurrentUserId() {
-        return ReactiveSecurityContextHolder.getContext().map(securityContext -> {
-            return ((User)securityContext.getAuthentication().getPrincipal()).getId();
-        }).defaultIfEmpty(0L);
+        this.currentUserService = currentUserService;
     }
     @PostMapping
     public Mono<Rendering> addOrder() {
-        return getCurrentUserId()
-                .flatMap(cartService::getCartById)
+        return currentUserService.getCurrentUserId()
+                .flatMap(cartService::getCartByUserId)
                 .flatMap(orderService::addOrder)
                 .map((order) -> {
                     return Rendering.redirectTo("/orders/" + order.getId() + "?justBought=true").build();

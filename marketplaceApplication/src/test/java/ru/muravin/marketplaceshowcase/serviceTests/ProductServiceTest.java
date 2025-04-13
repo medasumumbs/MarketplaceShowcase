@@ -1,12 +1,15 @@
 package ru.muravin.marketplaceshowcase.serviceTests;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.test.context.support.WithAnonymousUser;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import reactor.core.publisher.Flux;
@@ -20,6 +23,7 @@ import ru.muravin.marketplaceshowcase.models.CartItem;
 import ru.muravin.marketplaceshowcase.models.Product;
 import ru.muravin.marketplaceshowcase.repositories.ProductsReactiveRepository;
 import ru.muravin.marketplaceshowcase.services.CartService;
+import ru.muravin.marketplaceshowcase.services.CurrentUserService;
 import ru.muravin.marketplaceshowcase.services.ProductsService;
 import ru.muravin.marketplaceshowcase.services.RedisCacheService;
 
@@ -41,6 +45,9 @@ public class ProductServiceTest {
 
     @MockitoBean(reset = MockReset.BEFORE)
     RedisCacheService redisCacheService;
+
+    @MockitoBean(reset = MockReset.BEFORE)
+    CurrentUserService currentUserService;
 
     @Autowired
     private ProductsService productsService;
@@ -68,6 +75,7 @@ public class ProductServiceTest {
                 new Product(3l,"iphone 2",27d,"desc",new byte[0])
         );;
         List<Product> subList = products.subList(1,3);
+        when(currentUserService.getCurrentUserId()).thenReturn(Mono.just(1l));
         when(productsReactiveRepository
                 .findAll(pageRequest.getPageSize(), pageRequest.getPageNumber()*pageRequest.getPageSize()))
                 .thenReturn(Flux.fromIterable(subList));
@@ -92,6 +100,7 @@ public class ProductServiceTest {
         verify(cartService, times(1)).getCartItemsFlux(any(Mono.class));
     }
     @Test
+    @WithMockUser(roles = {"ADMIN"})
     void testSave() {
         var product = new Product(0l,"iphone",25d,"desc",new byte[0]);
         var dto = new ProductToUIDto(product);
@@ -100,7 +109,9 @@ public class ProductServiceTest {
         verify(productsReactiveRepository, times(1)).save(any(Product.class));
     }
     @Test
+    @WithAnonymousUser
     void testFindById() {
+        when(currentUserService.getCurrentUserId()).thenReturn(Mono.just(1l));
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         when(productsReactiveRepository.findById(1L)).thenReturn(Mono.just(product));
         when(cartService.getFirstCartIdMono()).thenReturn(Mono.just(1l));
@@ -115,6 +126,7 @@ public class ProductServiceTest {
     }
     @Test
     void testFindByIdNotFound() {
+        when(currentUserService.getCurrentUserId()).thenReturn(Mono.just(1l));
         when(redisCacheService.getProductCache(1L)).thenReturn(Mono.empty());
         when(productsReactiveRepository.findById(1L)).thenReturn(Mono.empty());
         when(cartService.getFirstCartIdMono()).thenReturn(Mono.just(1l));
@@ -123,6 +135,7 @@ public class ProductServiceTest {
     }
     @Test
     void testFindByNameLike() {
+        when(currentUserService.getCurrentUserId()).thenReturn(Mono.just(1l));
         var pageable = PageRequest.of(1,2);
         List<Product> products = List.of(
                 new Product(0l,"iphone",25d,"desc",new byte[0]),

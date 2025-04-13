@@ -28,6 +28,7 @@ import ru.muravin.marketplaceshowcase.repositories.OrderItemsReactiveRepository;
 import ru.muravin.marketplaceshowcase.repositories.OrderReactiveRepository;
 import ru.muravin.marketplaceshowcase.repositories.UserReactiveRepository;
 import ru.muravin.marketplaceshowcase.services.CartService;
+import ru.muravin.marketplaceshowcase.services.CurrentUserService;
 import ru.muravin.marketplaceshowcase.services.OrderService;
 import ru.muravin.marketplaceshowcase.services.RedisCacheService;
 
@@ -61,6 +62,8 @@ public class OrderServiceTest {
     private PaymentServiceClientAPI paymentServiceClient;
     @MockitoBean(reset = MockReset.BEFORE)
     private RedisCacheService redisCacheService;
+    @MockitoBean(reset = MockReset.BEFORE)
+    CurrentUserService currentUserService;
     @Test
     void findByIdTest() {
         var order = getTestOrder(1L);
@@ -89,8 +92,9 @@ public class OrderServiceTest {
 
     @Test
     void findAllTest() {
+        when(currentUserService.getCurrentUserId()).thenReturn(Mono.just(1l));
         var listOfOrders = List.of(getTestOrder(1L),getTestOrder(2L),getTestOrder(3L));
-        when(orderReactiveRepository.findAll()).thenReturn(Flux.fromIterable(listOfOrders));
+        when(orderReactiveRepository.findAllByUserId(1l)).thenReturn(Flux.fromIterable(listOfOrders));
         var orderItemDto = new OrderItemToUIDto();
         orderItemDto.setId(1L);
         orderItemDto.setPrice(123.23);
@@ -107,6 +111,7 @@ public class OrderServiceTest {
     }
     @Test
     void saveTest() {
+        when(currentUserService.getCurrentUserId()).thenReturn(Mono.just(1l));
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
         var user = new User();
         var testOrder = getTestOrder(1L);
@@ -131,7 +136,6 @@ public class OrderServiceTest {
         orderService.addOrder(cart).block();
 
        verify(orderReactiveRepository, times(1)).save(any(Order.class));
-       verify(userReactiveRepository, times(1)).findAll();
        verify(orderItemsReactiveRepository, times(1)).saveAll(any(Iterable.class));
     }
 }

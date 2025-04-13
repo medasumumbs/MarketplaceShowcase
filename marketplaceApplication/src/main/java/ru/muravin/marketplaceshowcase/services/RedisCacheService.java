@@ -26,12 +26,14 @@ public class RedisCacheService {
     private static final String REDIS_KEY_PRODUCTS = "products";
 
     private static final Duration REDIS_KEY_PRODUCTS_DURATION = Duration.ofSeconds(30);
+    private final CurrentUserService currentUserService;
 
     @Autowired
-    public RedisCacheService(ReactiveRedisTemplate<String, ProductToUIDto> redisTemplate, ReactiveRedisTemplate<String, Long> reactiveRedisTemplateForLongValues, ReactiveRedisTemplate<String, CartItemToUIDto> reactiveRedisTemplateForCartItems) {
+    public RedisCacheService(ReactiveRedisTemplate<String, ProductToUIDto> redisTemplate, ReactiveRedisTemplate<String, Long> reactiveRedisTemplateForLongValues, ReactiveRedisTemplate<String, CartItemToUIDto> reactiveRedisTemplateForCartItems, CurrentUserService currentUserService) {
         this.reactiveRedisTemplate = redisTemplate;
         this.reactiveRedisTemplateForLongValues = reactiveRedisTemplateForLongValues;
         this.reactiveRedisTemplateForCartItems = reactiveRedisTemplateForCartItems;
+        this.currentUserService = currentUserService;
     }
 
     public Mono<Long> setProductsListCache(String nameFilter,
@@ -70,9 +72,6 @@ public class RedisCacheService {
         var opsForValue = reactiveRedisTemplateForLongValues.opsForValue();
         return opsForValue.get(getKeyForProductsCount(nameFilter));
     }
-    private String getKeyForProduct(String productId) {
-        return REDIS_KEY_PRODUCTS + ":product:" + productId;
-    }
 
     public Mono<Long> setCartItemsCache(String cartId, List<CartItemToUIDto> list) {
         if (list == null || list.isEmpty()) return Mono.empty();
@@ -87,16 +86,20 @@ public class RedisCacheService {
         return reactiveRedisTemplateForCartItems.opsForList().range(getKeyForCartItems(cartId), 0, -1);
     }
 
+    private String getKeyForProduct(String productId) {
+        return REDIS_KEY_PRODUCTS + ":userId:" + currentUserService.getCurrentUserId().subscribe() + ":product:" + productId;
+    }
+
     private String getKeyForCartItems(String cartId) {
-        return REDIS_KEY_PRODUCTS + ":userId:" + getCurrentUserId().subscribe() + ":cart:" + cartId;
+        return REDIS_KEY_PRODUCTS + ":userId:" + currentUserService.getCurrentUserId().subscribe() + ":cart:" + cartId;
     }
 
     private String getKeyForProductsCount(String nameFilter) {
-        return REDIS_KEY_PRODUCTS + ":userId:" + getCurrentUserId().subscribe() + ":products_count:" + nameFilter;
+        return REDIS_KEY_PRODUCTS + ":userId:" + currentUserService.getCurrentUserId().subscribe() + ":products_count:" + nameFilter;
     }
 
     private String getKeyForProductsList(String nameFilter, String sort, Integer limit, Integer offset) {
-        return REDIS_KEY_PRODUCTS + ":userId:" + getCurrentUserId().subscribe() + ":products_list:" + nameFilter + ":" + limit + ":" + offset + ":" + sort;
+        return REDIS_KEY_PRODUCTS + ":userId:" + currentUserService.getCurrentUserId().subscribe() + ":products_list:" + nameFilter + ":" + limit + ":" + offset + ":" + sort;
     }
     public Mono<Long> evictCartCache(Integer cartId) {
         return reactiveRedisTemplate.delete(getKeyForCartItems(String.valueOf(cartId)));
@@ -104,12 +107,5 @@ public class RedisCacheService {
 
     public Mono<Long> evictCache() {
         return reactiveRedisTemplate.keys("*").flatMap(reactiveRedisTemplate::delete).count();
-    }
-
-
-    public Mono<Long> getCurrentUserId() {
-        return ReactiveSecurityContextHolder.getContext().map(securityContext -> {
-            return ((User)securityContext.getAuthentication().getPrincipal()).getId();
-        });
     }
 }

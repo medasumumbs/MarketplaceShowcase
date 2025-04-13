@@ -26,12 +26,14 @@ public class ProductsService {
 
     private final ProductsReactiveRepository productsReactiveRepository;
     private final RedisCacheService redisCacheService;
+    private final CurrentUserService currentUserService;
 
     @Autowired
-    public ProductsService(ProductsReactiveRepository productsReactiveRepository, CartService cartService, RedisCacheService redisCacheService) {
+    public ProductsService(ProductsReactiveRepository productsReactiveRepository, CartService cartService, RedisCacheService redisCacheService, CurrentUserService currentUserService) {
         this.productsReactiveRepository = productsReactiveRepository;
         this.cartService = cartService;
         this.redisCacheService = redisCacheService;
+        this.currentUserService = currentUserService;
     }
 
     public Flux<ProductToUIDto> findAll(int pageNumber, int pageSize, String sort) {
@@ -128,8 +130,9 @@ public class ProductsService {
                 .map(ProductToUIDto::new) // Преобразуем Product в ProductToUIDto
                 .switchIfEmpty(Mono.error(() -> new UnknownProductException("Product " + id + " not found")));
 
-        var cartItemMono = getCurrentUserId()
+        var cartItemMono = currentUserService.getCurrentUserId()
                 .flatMap(cartId -> {
+                    if (cartId.equals(0l)) return Mono.just(new CartItem());
                     return cartService.getCartItemMono(cartId, id);
                 }).defaultIfEmpty(new CartItem());
 
@@ -161,7 +164,7 @@ public class ProductsService {
 
     private Flux<ProductToUIDto> getProductToUIDtoFlux(Flux<Product> productFlux) {
         var products = productFlux.map(ProductToUIDto::new).collectList();
-        var cartItems = cartService.getCartItemsFlux(getCurrentUserId()).collectList();
+        var cartItems = cartService.getCartItemsFlux(currentUserService.getCurrentUserId()).collectList();
         return Mono.zip(products, cartItems).flatMapMany(tuple -> {
             enrichDtoListWithCartQuantities(tuple.getT1(), tuple.getT2());
             return Flux.fromIterable(tuple.getT1());
@@ -173,9 +176,5 @@ public class ProductsService {
         return productsReactiveRepository.saveAll(productsEntities).then();
     }
 
-    public Mono<Long> getCurrentUserId() {
-        return ReactiveSecurityContextHolder.getContext().map(securityContext -> {
-            return ((User)securityContext.getAuthentication().getPrincipal()).getId();
-        }).defaultIfEmpty(0L);
-    }
+
 }

@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -110,14 +111,25 @@ public class CartControllerTest {
                 .exchange().expectStatus().is3xxRedirection().expectHeader().location("/login");
     }
     @Test
-    void showCartTest() throws Exception {
+    void showCartUnauthorizedTest() throws Exception {
         var product = productsReactiveRepository.findAll().blockFirst();
         var cart = cartsReactiveRepository.findAll().blockFirst();
         CartItem cartItem = new CartItem(product,cart);
         cartItem.setQuantity(5);
         cartItemsReactiveRepository.save(cartItem).block();
-
-        webTestClient.get().uri("/cart").exchange().expectStatus().isOk().expectHeader().contentType("text/html")
+        webTestClient.get().uri("/cart").exchange().expectStatus().is3xxRedirection().expectHeader().location("/login");
+    }
+    @Test
+    void showCartTest() throws Exception {
+        var user = userReactiveRepository.findAll().blockFirst();
+        var auth = new UsernamePasswordAuthenticationToken(user, user.getPassword(), user.getAuthorities());
+        var product = productsReactiveRepository.findAll().blockFirst();
+        var cart = cartsReactiveRepository.findAll().blockFirst();
+        CartItem cartItem = new CartItem(product,cart);
+        cartItem.setQuantity(5);
+        cartItemsReactiveRepository.save(cartItem).block();
+        webTestClient.mutateWith(SecurityMockServerConfigurers.mockAuthentication(auth))
+                .get().uri("/cart").exchange().expectStatus().isOk().expectHeader().contentType("text/html")
                 .expectBody(String.class).value(body -> {
                     assertTrue(body.contains("125"));
                     assertTrue(body.contains("iphone"));

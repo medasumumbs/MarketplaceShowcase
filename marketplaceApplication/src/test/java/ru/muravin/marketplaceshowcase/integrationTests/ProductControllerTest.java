@@ -8,6 +8,8 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.servlet.MockMvc;
@@ -104,6 +106,35 @@ public class ProductControllerTest {
     }
     @Test
     void changeCartItemQuantityTest() throws Exception {
+        var user = userReactiveRepository.findAll().blockFirst();
+        var auth = new UsernamePasswordAuthenticationToken(user, user.getPassword(), user.getAuthorities());
+        var product = productsReactiveRepository.findAll().blockFirst();
+        var cart = cartsReactiveRepository.findAll().blockFirst();
+        CartItem cartItem = new CartItem(product,cart);
+        cartItem.setQuantity(5);
+        var productId = cartItem.getProductId();
+        cartItemsReactiveRepository.save(cartItem).block();
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("action", "plus");
+
+        webTestClient.mutateWith(SecurityMockServerConfigurers.mockAuthentication(auth)).post()
+                .uri("/products/changeCartItemQuantity/"+productId).bodyValue(formData).exchange()
+                //.expectBody(String.class).value(a->System.out.println(a));
+                .expectStatus().is3xxRedirection().expectHeader().location("/products");
+        cartItem = cartItemsReactiveRepository.findAll().blockFirst();
+        assertEquals(6, cartItem.getQuantity());
+
+        MultiValueMap<String, String> formData2 = new LinkedMultiValueMap<>();
+        formData.add("action", "minus");
+        webTestClient.mutateWith(SecurityMockServerConfigurers.mockAuthentication(auth))
+                .post().uri("/products/changeCartItemQuantity/"+productId).bodyValue(formData2).exchange()
+                .expectStatus().is3xxRedirection().expectHeader().location("/products");
+        cartItem = cartItemsReactiveRepository.findAll().blockFirst();
+        assertEquals(5, cartItem.getQuantity());
+    }
+    @Test
+    void changeCartItemQuantityUnauthorizedTest() throws Exception {
 
         var product = productsReactiveRepository.findAll().blockFirst();
         var cart = cartsReactiveRepository.findAll().blockFirst();
@@ -116,16 +147,7 @@ public class ProductControllerTest {
         formData.add("action", "plus");
 
         webTestClient.post().uri("/products/changeCartItemQuantity/"+productId).bodyValue(formData).exchange()
-                .expectStatus().is3xxRedirection().expectHeader().location("/products");
-        cartItem = cartItemsReactiveRepository.findAll().blockFirst();
-        assertEquals(6, cartItem.getQuantity());
-
-        MultiValueMap<String, String> formData2 = new LinkedMultiValueMap<>();
-        formData.add("action", "minus");
-        webTestClient.post().uri("/products/changeCartItemQuantity/"+productId).bodyValue(formData2).exchange()
-                .expectStatus().is3xxRedirection().expectHeader().location("/products");
-        cartItem = cartItemsReactiveRepository.findAll().blockFirst();
-        assertEquals(5, cartItem.getQuantity());
+                .expectStatus().is3xxRedirection().expectHeader().location("/login");
     }
     @Test
     void getItemPage() throws Exception {

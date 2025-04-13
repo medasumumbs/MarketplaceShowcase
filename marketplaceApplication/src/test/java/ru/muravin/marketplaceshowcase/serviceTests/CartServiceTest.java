@@ -20,6 +20,7 @@ import ru.muravin.marketplaceshowcase.repositories.CartItemsReactiveRepository;
 import ru.muravin.marketplaceshowcase.repositories.CartsReactiveRepository;
 import ru.muravin.marketplaceshowcase.repositories.ProductsReactiveRepository;
 import ru.muravin.marketplaceshowcase.services.CartService;
+import ru.muravin.marketplaceshowcase.services.CurrentUserService;
 import ru.muravin.marketplaceshowcase.services.RedisCacheService;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,9 +40,11 @@ public class CartServiceTest {
     private ProductsReactiveRepository productsReactiveRepository;
     @MockitoBean(reset = MockReset.BEFORE)
     private RedisCacheService redisCacheService;
-
+    @MockitoBean(reset = MockReset.BEFORE)
+    CurrentUserService currentUserService;
     @Test
     void addCartItemTest() {
+        when(currentUserService.getCurrentUserId()).thenReturn(Mono.just(1l));
         when(redisCacheService.evictCartCache(1)).thenReturn(Mono.just(2l));
 
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
@@ -49,7 +52,7 @@ public class CartServiceTest {
         var cart = new Cart();
         cart.setId(1L);
         when(cartsReactiveRepository.findById(1L)).thenReturn(Mono.just(cart));
-
+        when(cartsReactiveRepository.findByUserId(1L)).thenReturn(Mono.just(cart));
         CartItem cartItem = new CartItem();
         cartItem.setCartId(cart.getId());
         cartItem.setProductId(product.getId());
@@ -63,13 +66,11 @@ public class CartServiceTest {
         cartService.addCartItem(product.getId()).block();
         verify(cartItemsReactiveRepository, times(1)).findByProductIdAndCartId(product.getId(),cart.getId());
         verify(productsReactiveRepository, times(1)).findById(1L);
-        verify(cartsReactiveRepository, times(1)).findAll();
         verify(cartItemsReactiveRepository, times(1)).save(cartItem);
         when(cartItemsReactiveRepository.findByProductIdAndCartId(product.getId(),cart.getId())).thenReturn(Mono.empty());
         cartService.addCartItem(product.getId()).block();
         verify(cartItemsReactiveRepository, times(2)).findByProductIdAndCartId(product.getId(),cart.getId());
         verify(productsReactiveRepository, times(2)).findById(1L);
-        verify(cartsReactiveRepository, times(2)).findAll();
         verify(cartItemsReactiveRepository, times(3)).save(argThat(cartItem1 ->
                 cartItem1.getProductId().equals(product.getId()) &&
                         cartItem1.getCartId().equals(cart.getId())
@@ -78,6 +79,7 @@ public class CartServiceTest {
 
     @Test
     void removeCartItemTest() {
+        when(currentUserService.getCurrentUserId()).thenReturn(Mono.just(1l));
         when(redisCacheService.evictCartCache(1)).thenReturn(Mono.just(2l));
 
         var product = new Product(1L,"iphone",25d,"desc",new byte[0]);
@@ -93,6 +95,7 @@ public class CartServiceTest {
         cartItem.setId(1L);
 
         when(productsReactiveRepository.findById(1L)).thenReturn(Mono.just(product));
+        when(cartsReactiveRepository.findByUserId(1L)).thenReturn(Mono.just(cart));
         when(cartsReactiveRepository.findAll()).thenReturn(Flux.just(cart));
         when(cartItemsReactiveRepository.findByProductIdAndCartId(product.getId(), cart.getId())).thenReturn(Mono.just(cartItem));
         when(cartItemsReactiveRepository.delete(cartItem)).thenReturn(Mono.empty());
@@ -100,7 +103,6 @@ public class CartServiceTest {
         cartService.removeCartItem(product.getId()).block();
         verify(cartItemsReactiveRepository, times(1)).findByProductIdAndCartId(product.getId(),cart.getId());
         verify(productsReactiveRepository, times(1)).findById(1L);
-        verify(cartsReactiveRepository, times(1)).findAll();
         verify(cartItemsReactiveRepository, times(1)).save(argThat(cartItem1 ->
                 cartItem1.getProductId().equals(product.getId()) &&
                         cartItem1.getCartId().equals(cart.getId())
@@ -109,7 +111,6 @@ public class CartServiceTest {
         cartService.removeCartItem(product.getId()).block();
         verify(cartItemsReactiveRepository, times(2)).findByProductIdAndCartId(product.getId(),cart.getId());
         verify(productsReactiveRepository, times(2)).findById(1L);
-        verify(cartsReactiveRepository, times(2)).findAll();
         verify(cartItemsReactiveRepository, times(1)).save(argThat(cartItem1 ->
                 cartItem1.getProductId().equals(product.getId()) &&
                         cartItem1.getCartId().equals(cart.getId())

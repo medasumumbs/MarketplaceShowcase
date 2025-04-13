@@ -11,6 +11,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -94,7 +96,7 @@ public class OrderControllerTest {
     }
 
     @Test
-    void addOrderTest() throws Exception {
+    void addOrderUnauthorizedTest() throws Exception {
         var product = productsReactiveRepository.findAll().blockFirst();
         var cart = cartsReactiveRepository.findAll().blockFirst();
         CartItem cartItem = new CartItem(product,cart);
@@ -104,10 +106,26 @@ public class OrderControllerTest {
                 Mono.just(new PaymentResponse().message("OK").restBalance(100.00f))
         );
         Flux.just(webTestClient.post().uri("/orders").exchange().expectStatus()).doOnNext(a->{
+            a.is3xxRedirection().expectHeader().location("/login");
+        }).blockLast();
+    }
+    @Test
+    void addOrderTest() throws Exception {
+        var product = productsReactiveRepository.findAll().blockFirst();
+        var cart = cartsReactiveRepository.findAll().blockFirst();
+        var user = userReactiveRepository.findAll().blockFirst();
+        var auth = new UsernamePasswordAuthenticationToken(user, user.getPassword(), user.getAuthorities());
+        CartItem cartItem = new CartItem(product,cart);
+        cartItem.setQuantity(5);
+        cartItemsReactiveRepository.save(cartItem).block();
+        when(paymentServiceClient.usersUserIdMakePaymentPost(ArgumentMatchers.any(), ArgumentMatchers.any())).thenReturn(
+                Mono.just(new PaymentResponse().message("OK").restBalance(100.00f))
+        );
+        Flux.just(webTestClient.mutateWith(SecurityMockServerConfigurers.mockAuthentication(auth))
+                .post().uri("/orders").exchange().expectStatus()).doOnNext(a->{
             var orderId = orderReactiveRepository.findAll().blockLast().getId();
             a.is3xxRedirection().expectHeader().location("/orders/"+orderId+"?justBought=true");
         }).blockLast();
-
     }
 
     @Test
