@@ -2,7 +2,15 @@ server:
     port: 8081
 paymentsService:
     fullUrl: http://localhost:8080
+    client: paymentsService
+    secret: I5lAGv7cRXb003CMzrpe8wb3oEbMu011
+    scope: profile
+    registrationId: paymentsService
+    tokenUri: http://localhost:8083/realms/master/protocol/openid-connect/token
 spring:
+    main:
+        allow-bean-definition-overriding:
+            true
     codec:
         max-in-memory-size: 10MB
     r2dbc:
@@ -64,6 +72,12 @@ spring:
             host: localhost
             port: 6379
             timeout: 200
+
+
+    security:
+        oauth2:
+            client:
+
 
 logging:
     level:

@@ -36,12 +36,12 @@ public class OrderController {
                 .map((order) -> {
                     return Rendering.redirectTo("/orders/" + order.getId() + "?justBought=true").build();
                 }).onErrorMap(e -> {
+                    System.out.println("Ошибка в ответе от сервиса: " + e.getMessage());
                     if (e.getMessage().contains("400")) {
                         return new RuntimeException("Баланс недостаточен для совершения заказа");
                     } else if (e.getMessage().contains("404")) {
                         return new RuntimeException("Пользователь не найден");
                     } else {
-                        System.out.println(e.getMessage());
                         return new RuntimeException("Платежный сервис временно недоступен");
                     }
                 }).onErrorResume(error -> {

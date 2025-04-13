@@ -12,7 +12,39 @@ services:
     volumes:
     - postgres_data:/var/lib/postgresql/data
     networks:
-      postgres_network:
+      general_network:
+        
+  
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloakContainer
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: 123
+      KC_HOSTNAME: localhost
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+    networks:
+      - general_network
+    command: start-dev
+    ports:
+      - "8083:8080"
+  keycloak-init:
+    image: curlimages/curl:latest
+    container_name: keycloak_init
+    depends_on:
+      - keycloak
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: >
+      "
+      until curl -s http://keycloak:8083/realms/master > /dev/null; do echo 'Waiting for Keycloak to start...'; sleep 5; done;
+      curl -X POST -H 'Content-Type: application/json' \
+        -d '{\"clientId\":\"paymentsService\",\"enabled\":true,\"redirectUris\":[\"http://localhost:3000/*\"]}' \
+        http://admin:admin_password@keycloak:8083/admin/realms/master/clients;
+      echo 'Client registered successfully.'
+      "
   redis:
     image: redis:latest  # Используем официальный образ Redis
     container_name: redis  # Имя контейнера
@@ -22,9 +54,9 @@ services:
     volumes:
       - redis_data:/var/lib/redis/data
     networks:
-      - postgres_network
+      - general_network
 networks:
-  postgres_network:
+  general_network:
 
 volumes:
   postgres_data:

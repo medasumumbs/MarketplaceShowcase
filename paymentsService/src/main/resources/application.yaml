@@ -1,6 +1,9 @@
 server:
   port: 8080
 spring:
+  main:
+    allow-bean-definition-overriding:
+      true
   jackson:
     date-format: yyyy-MM-dd'T'HH:mm:ss.SSSZ
     serialization.WRITE_DATES_AS_TIMESTAMPS: false
@@ -30,3 +33,9 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri:
+            http://localhost:8083/realms/master

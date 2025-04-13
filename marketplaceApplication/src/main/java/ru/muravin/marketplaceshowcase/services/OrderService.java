@@ -50,7 +50,10 @@ public class OrderService {
             return paymentServiceClientAPI.usersUserIdMakePaymentPost(
                     Float.valueOf(String.valueOf(cartSum)),
                     Math.toIntExact(cart.getUserId())
-            ).flatMap(paymentResponse -> {
+            ).onErrorResume(e-> {
+                System.out.println(e.getMessage());
+                return Mono.error(e);
+            }).flatMap(paymentResponse -> {
                 if (paymentResponse.getMessage().equals("OK")) {
                     return Mono.just("Ok");
                 }

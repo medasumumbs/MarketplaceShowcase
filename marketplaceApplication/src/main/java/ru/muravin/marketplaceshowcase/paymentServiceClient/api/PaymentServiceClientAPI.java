@@ -22,19 +22,25 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Mono;
+import ru.muravin.marketplaceshowcase.paymentServiceClient.service.SecurityTokenService;
 
 @Component
 public class PaymentServiceClientAPI {
 
     private ApiClient apiClient;
+    private SecurityTokenService securityTokenService;
 
     public PaymentServiceClientAPI() {
         this(new ApiClient());
     }
 
     @Autowired
-    public PaymentServiceClientAPI(ApiClient apiClient) {
+    public PaymentServiceClientAPI(ApiClient apiClient, SecurityTokenService securityTokenService) {
         this.apiClient = apiClient;
+        this.securityTokenService = securityTokenService;
+    }
+
+    public PaymentServiceClientAPI(ApiClient apiClient) {
     }
 
     public ApiClient getApiClient() {
@@ -82,6 +88,9 @@ public class PaymentServiceClientAPI {
 
         String[] localVarAuthNames = new String[] {  };
 
+        System.out.println("bearerToken!!!: "+ securityTokenService.getBearerToken().block());
+        headerParams.add("Authorization","Bearer "+ securityTokenService.getBearerToken().block());
+
         ParameterizedTypeReference<Balance> localVarReturnType = new ParameterizedTypeReference<Balance>() {};
         return apiClient.invokeAPI("/users/{userId}", HttpMethod.GET, pathParams, queryParams, postBody, headerParams, cookieParams, formParams, localVarAccept, localVarContentType, localVarAuthNames, localVarReturnType);
     }
@@ -103,9 +112,14 @@ public class PaymentServiceClientAPI {
         emptyBalance.setBalance(0f);
         var errorBalance = new Balance();
         errorBalance.setBalance(-1f);
-        return usersUserIdGetRequestCreation(userId).bodyToMono(localVarReturnType)
-                .onErrorReturn(errorBalance)
-                .switchIfEmpty(Mono.just(emptyBalance));
+        return usersUserIdGetRequestCreation(userId).bodyToMono(localVarReturnType).flatMap(body1->{
+                    System.out.println("get balance response: "+body1);
+            return Mono.just(body1);
+        }).onErrorResume(e-> {
+            System.out.println(e.getMessage());
+            return Mono.just(errorBalance);
+        })
+        .switchIfEmpty(Mono.just(emptyBalance));
     }
 
     /**
@@ -182,7 +196,7 @@ public class PaymentServiceClientAPI {
         final MediaType localVarContentType = apiClient.selectHeaderContentType(localVarContentTypes);
 
         String[] localVarAuthNames = new String[] {  };
-
+        headerParams.add("Authorization","Bearer "+ securityTokenService.getBearerToken().block());
         ParameterizedTypeReference<PaymentResponse> localVarReturnType = new ParameterizedTypeReference<PaymentResponse>() {};
         return apiClient.invokeAPI("/users/{userId}/makePayment", HttpMethod.POST, pathParams, queryParams, postBody, headerParams, cookieParams, formParams, localVarAccept, localVarContentType, localVarAuthNames, localVarReturnType);
     }
@@ -202,7 +216,10 @@ public class PaymentServiceClientAPI {
      */
     public Mono<PaymentResponse> usersUserIdMakePaymentPost(Float sum, Integer userId) throws WebClientResponseException {
         ParameterizedTypeReference<PaymentResponse> localVarReturnType = new ParameterizedTypeReference<PaymentResponse>() {};
-        return usersUserIdMakePaymentPostRequestCreation(sum, userId).bodyToMono(localVarReturnType);
+        return usersUserIdMakePaymentPostRequestCreation(sum, userId).bodyToMono(localVarReturnType).flatMap(body->{
+            System.out.println("RESPONSE BODY: " + body);
+            return Mono.just(body);
+        });
     }
 
     /**
