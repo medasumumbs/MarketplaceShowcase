@@ -131,19 +131,37 @@ public class OrderControllerTest {
     @Test
     void getOrderTest() throws Exception {
         addOrderTest();
+        var user = userReactiveRepository.findAll().blockFirst();
+        var auth = new UsernamePasswordAuthenticationToken(user, user.getPassword(), user.getAuthorities());
         var orderId = orderReactiveRepository.findAll().blockLast().getId();
-        webTestClient.get().uri("/orders/"+orderId).exchange().expectStatus().isOk().expectBody(String.class).value(body->{
+        webTestClient.mutateWith(SecurityMockServerConfigurers.mockAuthentication(auth))
+                .get().uri("/orders/"+orderId).exchange().expectStatus().isOk().expectBody(String.class).value(body->{
             Assertions.assertTrue(body.contains("125"));
             Assertions.assertTrue(body.contains("iphone"));
         });
     }
     @Test
-    void getOrdersTest() throws Exception {
+    void getOrderUnauthorizedTest() throws Exception {
         addOrderTest();
         var orderId = orderReactiveRepository.findAll().blockLast().getId();
-        webTestClient.get().uri("/orders").exchange().expectStatus().isOk().expectBody(String.class).value(body->{
+        webTestClient.get().uri("/orders/"+orderId).exchange().expectStatus().is3xxRedirection().expectHeader().location("/login");
+    }
+    @Test
+    void getOrdersTest() throws Exception {
+        addOrderTest();
+        var user = userReactiveRepository.findAll().blockFirst();
+        var auth = new UsernamePasswordAuthenticationToken(user, user.getPassword(), user.getAuthorities());
+        var orderId = orderReactiveRepository.findAll().blockLast().getId();
+        webTestClient.mutateWith(SecurityMockServerConfigurers.mockAuthentication(auth))
+                .get().uri("/orders").exchange().expectStatus().isOk().expectBody(String.class).value(body->{
             Assertions.assertTrue(body.contains("125"));
             Assertions.assertTrue(body.contains("iphone"));
         });
+    }
+    @Test
+    void getOrdersUnauthorizedTest() throws Exception {
+        addOrderTest();
+        var orderId = orderReactiveRepository.findAll().blockLast().getId();
+        webTestClient.get().uri("/orders").exchange().expectStatus().is3xxRedirection().expectHeader().location("/login");
     }
 }
